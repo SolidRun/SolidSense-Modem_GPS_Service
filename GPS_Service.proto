@@ -1,0 +1,50 @@
+//
+// gRPC definition for GPS Service
+//
+//	Copyright Laurent Carré - Sterwen Technology 2019
+//
+syntax="proto3";
+message GPS_Position {
+	// message with the static position
+	required bool fix=1;// True if GPS is fixed, if false all other fields are irrelevant
+	string timestamp=2;	// UTC time of the position
+	float	latitude=3;	// latitude in decimal degree +north -south
+	float	longitude=4; // longitude in decimal degree + east - west
+	float	altitude=5;	 // in meter above sea level. No always present
+	}
+
+message GPS_Vector {
+	// message with start position (2D) and moving vector
+	required bool fix=1;// True if GPS is fixed, if false all other fields are irrelevant
+	string timestamp=2;	// UTC time of the position
+	float	latitude=3;	// latitude in decimal degree +north -south
+	float	longitude=4; // longitude in decimal degree + east - west
+	float	COG=5;		// Cape on Ground in decimal degree
+	float	SOG=6;		// Speed on ground in knots
+	}
+
+message GPS_Precision {
+	// additional precision information on the GPS
+	bool fix=1;		// True if GPS is fixed, if false all other fields are irrelevant
+	uint32 nbsat=2; // Number of sattelites in the fix
+	string timestamp=3;	// UTC time
+	string date=4;		// date
+	repeated uint32 sat_num=5;	// List of the satellites numbers seen in fix
+	float hdop = 6;		// Horizontal dilution of precision
+	}
+
+message PositionSpec {
+enum PositionSpecDef {
+	P2D= 0;		// Position 2D only
+	P3D= 1;		// Position 3D (send altitude if possible)
+	Best= 2;	// Best possible position
+	}
+	PositionSpecDef spec=1;
+	}
+
+service GPS_Service {
+	rpc getPosition(PositionSpec) returns (GPS_Position) {}
+	rpc getVector(PositionSpec) returns (GPS_Vector) {}
+	rpc getPrecision(PositionSpec) returns(GPS_Precision) {}
+	}
+	
