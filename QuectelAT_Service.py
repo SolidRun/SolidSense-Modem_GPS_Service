@@ -1,13 +1,12 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
 # Name:        Quectel modem manager
 # Purpose:
 #
-# Author:      carre2
+# Author:      Laurent Carré
 #
-# Created:     26/06/2018
-# Copyright:   (c) carre2 2018
+# Created:     26/06/2019
+# Copyright:   (c) Laurent Carré Sterwen Technologies 2019
 # Licence:     <your licence>
 #-------------------------------------------------------------------------------
 
@@ -29,7 +28,8 @@ class QuectelModem():
 
 
     def __init__(self,ifName,log=False):
-        self.open(ifName)
+        self._ifname=ifname
+        self.open()
         self._logAT=log
         if self._logAT :
             self._logfp=open("asmm-atcmd.log","a")
@@ -40,12 +40,12 @@ class QuectelModem():
         self._operatorNames=None # dictionary PLMN/Operator name
         return
 
-    def open(self,ifName):
+    def open(self):
         try:
-            self._tty=serial.Serial(ifName,timeout=10.0)
+            self._tty=serial.Serial(self._ifName,timeout=10.0)
         except serial.SerialException as err:
             # print "Opening:",ifName," :",err
-            raise ModemException(err)
+            raise ModemException("Open modem:"+self._ifname+" error:"+str(err))
         return
 
     def close(self):
@@ -149,8 +149,12 @@ class QuectelModem():
         else:
             self._SIM=False
 
-    def SIMPresent(self):
+    def SIM_Ready(self):
         return self._SIM and self._SIM_STATUS == "READY"
+    def SIM_Present(self):
+        return self._SIM
+    def SIM_Status(self):
+        return self._SIM_STATUS
     def IMEI(self):
         return self._IMEI
     def IMSI(self):
@@ -193,8 +197,8 @@ class QuectelModem():
 
     def networkStatus(self):
 
-        if not self.SIMPresent() :
-            return
+        if not self.SIM_Ready() :
+            return False
         resp=self.sendATcommand("+CREG?")
         param=self.splitResponse("+CREG",resp[0])
         if param[1] == 1 :
@@ -295,12 +299,12 @@ class QuectelModem():
 
 
 
-    def printNetworkStatus(self):
+    def logNetworkStatus(self):
         if self._networkReg == None :
-            print ("Not registered")
+            modem_log.info ("Not registered")
         else:
-            print (self._networkReg,":",self._networkName,"PLMN:",\
-                  self.decodePLMN(self._regPLMN),"Radio:",self._rat,"Band:",self._band,"RSSI:",self._rssi,"dBm" )
+            modem_log.info (self._networkReg+":"+self._networkName+" PLMN:",\
+                  self.decodePLMN(self._regPLMN)+" Radio:"+self._rat+" Band:"+self._band+" RSSI:"+str(self._rssi)+"dBm" )
 
     def logModemStatus(self,output=sys.stdout):
         modem_log.info ("Quectel modem "+self._model+self._rev)

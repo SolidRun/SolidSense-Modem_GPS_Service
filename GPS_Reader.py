@@ -9,35 +9,27 @@
 # Copyright:   (c) Laurent Carré Sterwen Technologies 2019
 # Licence:     <your licence>
 #-------------------------------------------------------------------------------
-from QuectelAT import *
+from QuectelAT_Service import *
 import pynmea2
 
 import serial
 import logging
 
+gps_serv_log=logging.getLogger('Modem_GPS_Service')
+
 class GPS_Reader():
 
-    def __init__(self,modem="/dev/ttyUSB2",tty="/dev/ttyUSB1"):
-        # first check that the GPS is turned on
+    def __init__(self,modem,tty="/dev/ttyUSB1"):
+        # We assume that the GPS is turned on before
         self._ready=False
         self._data={}
         self._data['fix']=False
-        try:
-            modem=QuectelModem(modem,False)
-        except ModemException as err:
-            print (err)
-            raise
-
         self._fix=False
-        if modem.gpsStatus() :
-            if modem.gpsPort() == "usbnmea"  :
-                # good to go
-                self._tty=serial.Serial(tty,baudrate=9600,timeout=10.0)
-                self._reader=pynmea2.NMEAStreamReader(self._tty,'raise')
-                self._ready=True
-                logging.info('GPS SERVICE: NMEA INTERFACE '+tty+' READY')
-                return
-        logging.error('GPS SERVICE: NMEA INTERFACE '+tty+' NOT READY')
+        self._tty=serial.Serial(tty,baudrate=9600,timeout=10.0)
+        self._reader=pynmea2.NMEAStreamReader(self._tty,'raise')
+        self._ready=True
+        logging.info('GPS SERVICE: NMEA INTERFACE '+tty+' READY')
+
 
 
     def close(self):
@@ -68,20 +60,20 @@ class GPS_Reader():
                     try:
                         sentence_type= msg.sentence_type
                     except AttributeError :
-                        logging.error('GPS SERVICE: NMEA ERROR - ILL FORMED SENTENCE')
+                        gps_serv_log.error('GPS SERVICE: NMEA ERROR - ILL FORMED SENTENCE')
                         continue
                     if sentence_type == 'GGA':
                             # print(msg)
 
                             if msg.gps_qual == 0 :
                                 if self._fix :
-                                    logging.debug('GPS SERVICE: GPS LOST FIX')
+                                    gps_serv_log.debug('GPS SERVICE: GPS LOST FIX')
                                 self._fix=False
                                 self._data['fix']=False
                                 return
                             else:
                                 if not self._fix :
-                                    logging.debug('GPS SERVICE: GPS FIXED')
+                                    gps_serv_log.debug('GPS SERVICE: GPS FIXED')
                                     self._fix=True
                                     self._data['fix']=True
                                 self._data['hdop']=float(msg.horizontal_dil)
@@ -102,7 +94,7 @@ class GPS_Reader():
                         # print(msg)
                         if msg.timestamp == None :
                             if self._fix:
-                                logging.debug('GPS SERVICE: GPS LOST FIX')
+                                gps_serv_log.debug('GPS SERVICE: GPS LOST FIX')
                                 self._fix=False
                                 self._data['fix'] = False
                             return
@@ -119,7 +111,7 @@ class GPS_Reader():
                         self._data['COG'] = msg_rmc.true_course
                         return
             except (pynmea2.ChecksumError,pynmea2.ParseError) as err :
-                logging.error('GPS SERVICE: NMEA ERROR '+str(err))
+                gps_serv_log.error('GPS SERVICE: NMEA ERROR '+str(err))
                 return
 
 
