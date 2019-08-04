@@ -29,6 +29,11 @@ class GPS_ServiceStub(object):
         request_serializer=GPS__Service__pb2.PositionSpec.SerializeToString,
         response_deserializer=GPS__Service__pb2.GPS_Precision.FromString,
         )
+    self.modemCommand = channel.unary_unary(
+        '/GPS_Service/modemCommand',
+        request_serializer=GPS__Service__pb2.ModemCmd.SerializeToString,
+        response_deserializer=GPS__Service__pb2.ModemResp.FromString,
+        )
 
 
 class GPS_ServiceServicer(object):
@@ -56,6 +61,13 @@ class GPS_ServiceServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def modemCommand(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_GPS_ServiceServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -73,6 +85,11 @@ def add_GPS_ServiceServicer_to_server(servicer, server):
           servicer.getPrecision,
           request_deserializer=GPS__Service__pb2.PositionSpec.FromString,
           response_serializer=GPS__Service__pb2.GPS_Precision.SerializeToString,
+      ),
+      'modemCommand': grpc.unary_unary_rpc_method_handler(
+          servicer.modemCommand,
+          request_deserializer=GPS__Service__pb2.ModemCmd.FromString,
+          response_serializer=GPS__Service__pb2.ModemResp.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

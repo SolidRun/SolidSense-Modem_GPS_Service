@@ -6,7 +6,7 @@
 syntax="proto3";
 message GPS_Position {
 	// message with the static position
-	required bool fix=1;// True if GPS is fixed, if false all other fields are irrelevant
+	bool fix=1;// True if GPS is fixed, if false all other fields are irrelevant
 	string timestamp=2;	// UTC time of the position
 	float	latitude=3;	// latitude in decimal degree +north -south
 	float	longitude=4; // longitude in decimal degree + east - west
@@ -15,7 +15,7 @@ message GPS_Position {
 
 message GPS_Vector {
 	// message with start position (2D) and moving vector
-	required bool fix=1;// True if GPS is fixed, if false all other fields are irrelevant
+	bool fix=1;// True if GPS is fixed, if false all other fields are irrelevant
 	string timestamp=2;	// UTC time of the position
 	float	latitude=3;	// latitude in decimal degree +north -south
 	float	longitude=4; // longitude in decimal degree + east - west
@@ -25,6 +25,7 @@ message GPS_Vector {
 
 message GPS_Precision {
 	// additional precision information on the GPS
+	uint32 frameID= 10;
 	bool fix=1;		// True if GPS is fixed, if false all other fields are irrelevant
 	uint32 nbsat=2; // Number of sattelites in the fix
 	string timestamp=3;	// UTC time
@@ -42,9 +43,37 @@ enum PositionSpecDef {
 	PositionSpecDef spec=1;
 	}
 
+
+message ModemCmd {
+	string command=1;
+	}
+	
+
+message ModemStatus {
+	string model=1;
+	string IMEI=2;
+	bool gps_on=3;
+	string SIM_status = 4;
+	string IMSI=5;
+	bool registered=6;
+	string network_reg=7;
+	uint32 PLMNID=8;
+	string network_name=9;
+	string network=10;
+	string rat=11;
+	string band=12;
+	sint32 rssi=13;
+	}
+	
+message ModemResp {
+	uint32 frameID=1;
+	string response=2;
+	ModemStatus status = 3;
+	}
 service GPS_Service {
 	rpc getPosition(PositionSpec) returns (GPS_Position) {}
 	rpc getVector(PositionSpec) returns (GPS_Vector) {}
 	rpc getPrecision(PositionSpec) returns(GPS_Precision) {}
+	rpc modemCommand(ModemCmd) returns(ModemResp){}
 	}
 	
