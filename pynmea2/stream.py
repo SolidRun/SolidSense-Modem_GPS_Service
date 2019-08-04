@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 from . import nmea
 import sys
+import serial
 
 __all__ = ['NMEAStreamReader']
 
@@ -42,7 +43,13 @@ class NMEAStreamReader(object):
         '''
         if data is None:
             if self.stream:
-                data = self.stream.readline()
+                #
+                #  checking reading errors
+                #  this is assuming serial line
+                try:
+                    data = self.stream.readline()
+                except serial.SerialException as err:
+                    return None
             else:
                 return
 

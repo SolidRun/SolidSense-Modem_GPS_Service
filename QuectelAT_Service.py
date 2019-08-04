@@ -28,7 +28,7 @@ class QuectelModem():
 
 
     def __init__(self,ifName,log=False):
-        self._ifname=ifname
+        self._ifname = ifName
         self.open()
         self._logAT=log
         if self._logAT :
@@ -42,7 +42,7 @@ class QuectelModem():
 
     def open(self):
         try:
-            self._tty=serial.Serial(self._ifName,timeout=10.0)
+            self._tty=serial.Serial(self._ifname,timeout=10.0)
         except serial.SerialException as err:
             # print "Opening:",ifName," :",err
             raise ModemException("Open modem:"+self._ifname+" error:"+str(err))
@@ -104,6 +104,7 @@ class QuectelModem():
             elif cleanResp.startswith("+CME") :
                 readResp=False
                 modem_log.debug(cleanResp)
+                respList.append(cleanResp)
                 if raiseException :
                     raise ModemException(cleanResp)
             else :
@@ -132,15 +133,28 @@ class QuectelModem():
         # print r
         svn=self.splitResponse("+EGMR",r[0])
         self._svn=svn[0]
+        self.checkSIM()
+
+
+    def checkSIM(self):
         # check if SIM is present
         r=self.sendATcommand("+QSIMSTAT?")
-        sim_flags=self.splitResponse("+QSIMSTAT",r[0])
+        sim_status_read=False
+        for resp in r:
+            cmd=self.checkResponse(resp)
+            if cmd== "+QSIMSTAT" :
+                sim_flags=self.splitResponse("+QSIMSTAT",resp)
+            elif cmd == "+CPIN" :
+                sim_lock= self.splitResponse("+CPIN",resp)
+                sim_status_read = True
+
         # print("SIM FLAGS=",sim_flags)
         if sim_flags[1] == 1 :
             # there is a SIM inserted
             self._SIM=True
-            r=self.sendATcommand("+CPIN?")
-            sim_lock=self.splitResponse("+CPIN",r[0])
+            if not sim_status_read :
+                r=self.sendATcommand("+CPIN?")
+                sim_lock=self.splitResponse("+CPIN",r[0])
             # print("SIM lock=",sim_lock[0])
             self._SIM_STATUS=sim_lock[0]
             if sim_lock[0] == "READY":
@@ -154,7 +168,10 @@ class QuectelModem():
     def SIM_Present(self):
         return self._SIM
     def SIM_Status(self):
-        return self._SIM_STATUS
+        if self._SIM :
+            return self._SIM_STATUS
+        else:
+            return "NO SIM"
     def IMEI(self):
         return self._IMEI
     def IMSI(self):
@@ -194,13 +211,24 @@ class QuectelModem():
         return param
 
 
+    def checkResponse(self,resp) :
+        """
+        analyse response with unknown command inside
+        """
+        cmd=resp.index(':')
+        return resp[:cmd]
+
 
     def networkStatus(self):
 
         if not self.SIM_Ready() :
             return False
         resp=self.sendATcommand("+CREG?")
-        param=self.splitResponse("+CREG",resp[0])
+        # warning some spontaneous messages can come
+        for r in resp:
+            if self.checkResponse(r) == '+CREG' :
+                vresp=r
+        param=self.splitResponse("+CREG",vresp)
         if param[1] == 1 :
             modem_log.info ("registered on home operator")
             self._networkReg="HOME"
@@ -244,39 +272,52 @@ class QuectelModem():
 
     def readOperatorNames(self,fileName):
         if os.path.exists(fileName) :
-            print ("reading",fileName)
+            # print ("reading",fileName)
             try:
                 fp=open(fileName,"r")
             except IOError as err:
-                print (err)
+                modem_log.info ("Reading operators database:"+fileName+" :"+str(err))
                 return
-            self._operatorNames=json.load(fp)
-            print ("Succefully read operators DB with:",len(self._operatorNames),"entries")
+            in_str= json.load(fp)
+            if in_str['IMSI'] != self._IMSI :
+                # SIM has been changed - information is void
+                modem_log.info("SIM CARD Changed")
+                fp.close()
+                return False
+
+            self._operatorNames=in_str['operators']
+            modem_log.info ("Succefully read operators DB with:"+str(len(self._operatorNames))+" entries")
             fp.close()
+            return True
+        else:
+            return False
 
 
     def saveOperatorNames(self,fileName)  :
-        if not self.SIMPresent() :
+        print("saving operaors DB")
+        if not self.SIM_Ready() :
             return
         try:
             fp=open(fileName,"w")
-        except IOError as err:
-            print (err)
+        except OSError as err:
+            modem_log.error ("Writing operators database:"+fileName+" :"+str(err))
             return
         # now retrieve all network names
         resp=self.sendATcommand("+COPN")
         self._operatorNames={}
         nbOper=0
+        out={}
+        out['IMSI']=self._IMSI
         for r in resp:
             oper=self.splitResponse("+COPN",r)
             # print oper[0],",",oper[1]
             plmnid=oper[0]
             self._operatorNames[plmnid]=oper[1]
             nbOper=nbOper+1
-
+        out['operators'] = self._operatorNames
         # now save in file
-        json.dump(self._operatorNames,fp)
-        print ("Saved",nbOper,"names in",fileName)
+        json.dump(out,fp)
+        modem_log.info ("Saved"+str(nbOper)+" names in:"+fileName)
         fp.close()
 
 
@@ -303,7 +344,7 @@ class QuectelModem():
         if self._networkReg == None :
             modem_log.info ("Not registered")
         else:
-            modem_log.info (self._networkReg+":"+self._networkName+" PLMN:",\
+            modem_log.info (self._networkReg+":"+self._networkName+" PLMN:"+\
                   self.decodePLMN(self._regPLMN)+" Radio:"+self._rat+" Band:"+self._band+" RSSI:"+str(self._rssi)+"dBm" )
 
     def logModemStatus(self,output=sys.stdout):
@@ -315,6 +356,31 @@ class QuectelModem():
             if self._SIM_STATUS== "READY" : modem_log.info ("SIM:"+self._IMSI)
         else :
             modem_log.info ("NO SIM Inserted"  )
+
+    def modemStatus(self):
+        out={}
+        out['model']= self._model+" "+self._rev
+        out['IMEI']= self.IMEI ()
+        if self.gpsStatus() :
+            out['gps_on']=True
+        else:
+            out['gps_on'] = False
+        out['SIM_status']= self.SIM_Status()
+        if self.SIM_Present() :
+            out['IMSI'] = self.IMSI()
+            if self._networkReg != None :
+                out['registered'] = True
+                out['network_reg']= self._networkReg
+                out['PLMNID']=self._regPLMN
+                out['network_name'] = self._networkName
+                out['network']=self.decodePLMN(self._regPLMN)
+                out['rat']  = self._rat
+                out['band'] = self._band
+                out['rssi'] = self._rssi
+            else:
+                out['registered']  = False
+        return out
+
 
     #
     # perform a modem reset
@@ -357,6 +423,19 @@ class QuectelModem():
         status['NMEA_port2']=param[1]
         # read values
         resp=self.sendATcommand("+QGPSLOC=0")
+        #print("GPS RESP=",resp)
+        # check that we are fixed
+        cmd=self.checkResponse(resp[0])
+        if cmd.startswith('+CME') :
+            err=int(self.splitResponse("+CME ERROR",resp[0])[0] )
+            # print("ERROR=",err)
+            if err == 516 :
+                status ['fix']=False
+            else:
+                status ['fix'] = err
+            return status
+        # now we shall have a valid GPS signal
+        status['fix'] = True
         param=self.splitResponse("+QGPSLOC",resp[0])
         status["Time_UTC"]=param[0]
         status["Latitude"]=param[1]

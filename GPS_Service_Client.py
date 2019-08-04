@@ -43,6 +43,7 @@ def main():
     gps=GPS_Service_Client(sys.argv[1])
     print("====GPS Server :",sys.argv[1]," Connected ============")
     resp=gps.getGPSPrecision()
+    print("Receive frame=",resp.frameID)
     if resp.fix :
         print("GPS FIXED date:",resp.date, "time:",resp.timestamp)
         resp=gps.getGPSVector()

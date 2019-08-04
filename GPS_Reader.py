@@ -19,13 +19,18 @@ gps_serv_log=logging.getLogger('Modem_GPS_Service')
 
 class GPS_Reader():
 
-    def __init__(self,modem,tty="/dev/ttyUSB1"):
+    def __init__(self,tty="/dev/ttyUSB1"):
         # We assume that the GPS is turned on before
         self._ready=False
         self._data={}
         self._data['fix']=False
         self._fix=False
-        self._tty=serial.Serial(tty,baudrate=9600,timeout=10.0)
+        # print("Logging level:",gps_serv_log.getEffectiveLevel())
+        try:
+            self._tty=serial.Serial(tty,baudrate=9600,timeout=10.0)
+        except serial.SerialException as err:
+            gps_serv_log.critical("CANNOT OPEN GPS NMEA PORT:"+tty+" :"+str(err))
+            raise
         self._reader=pynmea2.NMEAStreamReader(self._tty,'raise')
         self._ready=True
         logging.info('GPS SERVICE: NMEA INTERFACE '+tty+' READY')
@@ -57,6 +62,8 @@ class GPS_Reader():
             try:
                 for msg in self._reader.next():
                     # print (msg )
+                    if msg == None :
+                        gps_serv_log.error("GPS SERVICE READ ERROR -- IGNORING FRAME")
                     try:
                         sentence_type= msg.sentence_type
                     except AttributeError :
