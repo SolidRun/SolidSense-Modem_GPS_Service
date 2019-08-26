@@ -28,6 +28,9 @@ from Modem_Service import *
 
 gps_log=logging.getLogger('Modem_GPS_Service')
 
+grpc_server=None
+exit_flag= -1
+
 class GPS_data():
 
     position_fields=(('longitude',float),('latitude',float),('timestamp',str))
@@ -123,10 +126,16 @@ class GPS_ServiceReader(GPS_Reader) :
     def run(self):
 
         while True:
-            self._synchro.gpsWait()
-            logging.info("GPS start measuring")
+            if self._synchro.gpsWait():
+                # we need to exit the loop
+                gps_log.info("GPS Thread Stop request received")
+                break   # stop the thread
+            gps_log.debug("GPS start measuring")
             self.runOnce()
             self._synchro.gpsReady()
+            if self._synchro.stopThread() :
+                gps_log.info("GPS Thread Stop request received")
+                break   # stop the thread
             self._synchro.checkTimer()
 
     '''
@@ -216,6 +225,7 @@ class GPS_Servicer(GPS_Service_pb2_grpc.GPS_ServiceServicer) :
         return pre
 
     def modemCommand(self,request,context):
+        global grpc_server,exit_flag
         cmd=request.command
         gps_log.debug('MODEM COMMAND:'+cmd)
         resp=GPS_Service_pb2.ModemResp()
@@ -228,6 +238,15 @@ class GPS_Servicer(GPS_Service_pb2_grpc.GPS_ServiceServicer) :
             resp.response=rm[0]
             if rm[0] == "OK" :
                dictToResult(rm[1],resp.status)
+            elif rm[0] == "STOP":
+                self._synchro.setStopThread()
+                grpc_server.stop()
+                exit_flag=0
+            elif rm[0]== "RESTART":
+                self._synchro.setStopThread()
+                grpc_server.stop()
+                exit_flag=2
+
 
         gps_log.debug('MODEM COMMAND SERVICE RESPONSE:'+resp.response)
         return resp
@@ -255,10 +274,22 @@ class GPS_Service_Server():
         address=l_address+':'+str(port)
         gps_log.info('GPS SERVICE: CREATING GRPC SERVER ON:'+address)
         self._server.add_insecure_port(address)
+        self._endEvent=threading.Event()
 
     def start(self) :
         gps_log.info('GPS SERVICE: START GRPC SERVER')
         self._server.start()
+
+    def stop(self):
+        gps_log.info('GPS SERVICE: STOP GRPC SERVER')
+        self._finalEnd=self._server.stop(1.0)
+        self._endEvent.set()
+
+    def waitEnd(self):
+        self._endEvent.wait()
+        # print("End event received")
+        self._finalEnd.wait()
+        # print("Final event received")
 
 
 class GPS_Service_Synchro() :
@@ -269,10 +300,11 @@ class GPS_Service_Synchro() :
         self._waitGPS= threading.Event()
         self._timer=time.time()
         self._state=0
+        self._stopThread=False
 
 
     def stop(self):
-        print("Synchro timer expire")
+        # print("Synchro timer expire")
         if self._state == 1 :
             self._go_GPS.clear()
             self._state=0
@@ -294,16 +326,26 @@ class GPS_Service_Synchro() :
 
     def gpsWait(self):
         self._go_GPS.wait()
+        return self._stopThread
 
     def checkTimer(self):
         if time.time() - self._timer > 10.:
             self.stop()
+
+    def setStopThread(self):
+        self._stopThread=True
+        if self._state == 0:
+            self._go_GPS.set() #unlock the GPS thread
+
+    def stopThread(self):
+        return self._stopThread
 
 
 
 
 def main():
     #
+    global grpc_server
     #
     logging.basicConfig(level=logging.DEBUG,format='%(asctime)s - %(message)s',file=sys.stdout)
     #
@@ -362,10 +404,12 @@ def main():
     nmea_thread.start()
     grpc_server.start()
     try:
-        while True:
-            time.sleep(3600.)
+        grpc_server.waitEnd()
     except KeyboardInterrupt :
         exit(0)
+    nmea_thread.join()
+    gps_log.info("GPS SERVICE EXITING WITH CODE:"+str(exit_flag))
+    exit(exit_flag)
 
 
 

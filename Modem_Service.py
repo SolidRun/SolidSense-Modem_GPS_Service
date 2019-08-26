@@ -34,7 +34,7 @@ class Modem_Service():
 
         self._modem=QuectelModem(self._device)
         # at that point we shall be OK ,there is a modem attached
-        self._open=True
+        self._openFlag=True
         self._modem.logModemStatus()
         if not self._modem.SIM_Present() :
             # no SIM, no need to continue
@@ -97,12 +97,17 @@ class Modem_Service():
 
     def startGPS(self):
         if self._openFlag :
+            mdm_serv_log.debug("Modem service => starting GPS")
             if not self._modem.gpsStatus():
                 # start the GPS
-                self._modem.startGPS()
-            mdm_serv_log.debug("Modem service => GPS started")
+                # print("GPS not started => let's start it")
+                self._modem.gpsOn()
+                if self._modem.gpsStatus():
+                    mdm_serv_log.info("Modem service => GPS started")
+                else:
+                    mdm_serv_log.error("Modem Service => failed to start the GPS")
         else:
-            mdm_serv_log.debug("Modem service => cannot start GPS")
+            mdm_serv_log.critical("Modem service => progam GPS ERROR")
 
     def controlIf(self):
         return self._device
@@ -113,6 +118,14 @@ class Modem_Service():
         if cmd == 'status' :
             resp_dict=self._modem.modemStatus()
             resp_msg="OK"
+        elif cmd == "reset":
+            self._modem.resetCard()
+            time.sleep(10.0)
+            resp_msg="RESTART"
+            resp_dict=None
+        elif cmd == "stop":
+            resp_msg="STOP"
+            resp_dict=None
         else:
             resp_msg="Unkown command"
             resp_dict=None
