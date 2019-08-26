@@ -294,7 +294,7 @@ class QuectelModem():
 
 
     def saveOperatorNames(self,fileName)  :
-        print("saving operaors DB")
+        print("saving operators DB")
         if not self.SIM_Ready() :
             return
         try:
@@ -332,7 +332,7 @@ class QuectelModem():
             try:
                 network=self._operatorNames[plmn]
             except KeyError:
-                modem_log.debug ("No PLMID:",plmn)
+                modem_log.debug ("No PLMID:"+plmn)
                 network=str(plmn)
         else:
             network=str(plmn)

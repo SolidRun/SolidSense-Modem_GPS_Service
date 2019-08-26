@@ -18,7 +18,7 @@ modem_gps_parameters=None
 
 def modem_gps_init_parameters():
     global modem_gps_parameters
-    dir_h='/data/solidsense/modem_gps'
+    dir_h=getDataDir()
     fn=dir_h+'/parameters.json'
     try:
         fp=open(fn,'r')
@@ -69,7 +69,7 @@ def getLogLevel():
     return level
 
 def getDataDir():
-    return "/data/solidsense"
+    return "/data/solidsense/modem_gps"
 
 def buildFileName(param):
     fn=getparam(param)
