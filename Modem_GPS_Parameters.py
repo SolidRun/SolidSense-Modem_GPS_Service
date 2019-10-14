@@ -22,31 +22,41 @@ def modem_gps_init_parameters():
     fn=dir_h+'/parameters.json'
     try:
         fp=open(fn,'r')
-    except IOError as err:
+    except (IOError, FileNotFoundError) as err:
         local_log.info("Read parameters in:"+fn+" Err:"+str(err))
         #  initilaise with default values
-        out={}
-        out['modem_ctrl']='/dev/ttyUSB2'
-        out['nmea_tty']='/dev/ttyUSB1'
-        out['start_gps_service']=False
-        out['start_gps']=False
-        out['PIN']='0000'
-        out['address']='0.0.0.0'
-        out['port']=20231
-        out['operatorsDB']="operatorsDB"
-        out['trace']= "info"
+        default_param()
         try:
             fp=open(fn,'w')
         except IOError as err:
-             local_log.error("Write parameters in:"+fn+" Err:"+str(err))
-             raise
-        json.dump(out,fp,indent=1)
+            local_log.error("Write parameters in:"+fn+" Err:"+str(err))
+            raise
+        json.dump(modem_gps_parameters,fp,indent=1)
         fp.close()
-        modem_gps_parameters=out
         return
-    modem_gps_parameters=json.load(fp)
+    try:
+        modem_gps_parameters=json.load(fp)
+    except Exception as err:
+        local_log.error("Error decoding parameter file (running on default):"+str(err))
+        default_param()
     # print(modem_gps_parameters)
     fp.close()
+
+def default_param():
+    global modem_gps_parameters
+    out={}
+    out['modem_ctrl']='/dev/ttyUSB2'
+    out['nmea_tty']='/dev/ttyUSB1'
+    out['start_gps_service']=True
+    out['start_gps']=False
+    out['PIN']='0000'
+    out['address']='0.0.0.0'
+    out['port']=20231
+    out['operatorsDB']="operatorsDB"
+    out['trace']= "info"
+    out['roaming']=True
+
+    modem_gps_parameters=out
 
 def getparam(name):
     try:

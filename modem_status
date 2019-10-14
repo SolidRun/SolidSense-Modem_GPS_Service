@@ -1,0 +1,5 @@
+#!/bin/bash
+#
+#  modem gps service on solid sense status request
+#
+python3 /opt/SolidSense/modem_gps/Modem_Service_Client.py localhost:20231 status

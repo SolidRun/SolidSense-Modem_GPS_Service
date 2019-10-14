@@ -27,6 +27,21 @@ class Modem_Client():
         resp=self._stub.modemCommand(req)
         return resp
 
+    def getGPSPosition(self):
+        req=PositionSpec(spec=PositionSpec.P2D)
+        resp=self._stub.getPosition(req)
+        return resp
+
+    def getGPSVector(self):
+        req=PositionSpec(spec=PositionSpec.P2D)
+        resp=self._stub.getVector(req)
+        return resp
+
+    def getGPSPrecision (self):
+        req=PositionSpec(spec=PositionSpec.P2D)
+        resp=self._stub.getPrecision(req)
+        return resp
+
 
 def main():
 
@@ -41,6 +56,23 @@ def main():
             print("IMSI:",rs.IMSI)
             if rs.registered :
                 print("On:",rs.network_reg," Network:",rs.network," Radio:",rs.rat,"Band:",rs.band," RSSI:",rs.rssi,"dBm")
+            else :
+                print("Not registered - visible operators:\n",rs.operators)
+        if rs.gps_on :
+            resp=gps.getGPSPrecision()
+            print("Receive frame=",resp.frameID)
+            if resp.fix :
+                print("GPS FIXED date:",resp.date, "time:",resp.timestamp)
+                resp=gps.getGPSVector()
+                print("LAT:",resp.latitude,"LONG:",resp.longitude,"SOG:",resp.SOG,"COG:",resp.COG)
+            else:
+                print("GPS Not fixed")
+                res="Satellite in view:"+str(resp.nbsat)+" ["
+                for n in resp.sat_num :
+                    res= res+str(n)+","
+                res=res+"]"
+                print (res)
+
 
 
 

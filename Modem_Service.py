@@ -39,13 +39,23 @@ class Modem_Service():
         if not self._modem.SIM_Present() :
             # no SIM, no need to continue
             return
-        # now check if we need and can send the PIN code
+        # now check if we need and can send the PIN code and perform init
+        init_done=False
         nb_attempt=0
         pin_set=False
         while nb_attempt < 3 :
             mdm_serv_log.debug("Modem setup attempt#"+str(nb_attempt))
             if self._modem.SIM_Ready() :
                 mdm_serv_log.debug("Modem setup SIM status:"+self._modem.SIM_Status())
+                # perform SIM init sequence
+                if not init_done :
+                    # clearing forbidden PLMN list
+                    self._modem.clearFPLMN()
+                    roaming=getparam("roaming")
+                    if roaming != None and roaming :
+                        # print("allowing roaming")
+                        self._modem.allowRoaming()
+                    init_done = True
                 # the SIM is ready so look in operatorsDB
                 if not self._modem.readOperatorNames(buildFileName('operatorsDB')) :
                     # file or SIM has been change => rebuild and save
