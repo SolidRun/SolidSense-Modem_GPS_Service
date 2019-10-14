@@ -63,6 +63,7 @@ message ModemStatus {
 	string rat=11;
 	string band=12;
 	sint32 rssi=13;
+	string operators=14;
 	}
 	
 message ModemResp {

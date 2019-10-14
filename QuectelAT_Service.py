@@ -185,6 +185,28 @@ class QuectelModem():
             self.sendATcommand(cmd)
         except ModemException as err:
             modem_log.error("Modem set PIN :"+str(err))
+
+    #
+    # allow roaming
+    #
+    def allowRoaming(self):
+        r=self.sendATcommand("+QCFG=\"roamservice\"")
+        modem_log.debug("Modem roaming configuration:"+r[0])
+        rs=self.splitResponse("+QCFG",r[0])
+        #  print("roaming flag:",rs[1])
+        if rs[1] != 2 :
+            r=self.sendATcommand("+QCFG=\"roamservice\",2,1")
+
+    def clearFPLMN(self):
+        """
+        clearing forbidden PLMN list
+        """
+        # print("Clearing FPLMN")
+        try:
+            r=self.sendATcommand("+CRSM=214,28539,0,0,12,\"FFFFFFFFFFFFFFFFFFFFFFFF\"",True)
+        except ModemException as err :
+            modem_log.error("Error during Clearing FPLMN="+str(err))
+
     #
     #   split a complex response in several fields
     #
@@ -320,6 +342,38 @@ class QuectelModem():
         modem_log.info ("Saved"+str(nbOper)+" names in:"+fileName)
         fp.close()
 
+    #
+    #  display visible operators
+    #
+    def visibleOperators(self):
+        access = { 0 : 'Unknown', 1 : 'Available', 2:'Current', 3:'Forbidden'}
+        rat = {0:'GSM',2:'UTRAN',3:'GSM/GPRS',4:'3G HSDPA',5:'3G HSUPA',
+          6:'3G HSDPA/HSUPA',7:'LTE',100:'CDMA'}
+        # print ("Looking for operators....." )
+        resp=self.sendATcommand("+COPS=?")
+        oper=resp[0].split('(')
+        result=''
+        # print ("Operators visible by the modem")
+        for o in oper[1:] :
+            # print o
+            fields=o.split(',')
+            if len(fields) < 5 :
+                # print( "Strange operator:",o )
+                continue
+            a=int(fields[0])
+            o=fields[1][1:len(fields[1])-1]
+            p=int(fields[3][1:len(fields[3])-1] )
+            ip=fields[4].find(')')
+            #print fields[4],ip
+            r=int(fields[4][:ip])
+            try:
+                # print (o,":",access[a],"PLMN:",self.decodePLMN(p)," AT:",rat[r])
+                res = "%s: %s - PLMN: %s - RAT: %s" % (o,access[a],str(self.decodePLMN(p)),rat[r])
+                modem_log.info(res)
+                result += res + '\n'
+            except KeyError :
+                continue
+        return result
 
     def decodePLMN(self,plmnid) :
 
@@ -379,6 +433,8 @@ class QuectelModem():
                 out['rssi'] = self._rssi
             else:
                 out['registered']  = False
+                out['operators'] = self.visibleOperators()
+
         return out
 
 

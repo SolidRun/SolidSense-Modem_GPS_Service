@@ -25,5 +25,7 @@ chmod 644 /etc/systemd/system/modem_gps.service
 systemctl enable modem_gps.service
 systemctl daemon-reload
 systemctl status modem_gps
-
+# installing utilities
+cp modem_status /usr/local/bin
+chmod a+x /usr/local/bin/modem_status
  
