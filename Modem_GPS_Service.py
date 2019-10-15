@@ -347,7 +347,7 @@ def main():
     #
     global grpc_server
     #
-    logging.basicConfig(level=logging.DEBUG,format='%(asctime)s - %(message)s',file=sys.stdout)
+    logging.basicConfig(level=logging.DEBUG,format='%(asctime)s - %(message)s',stream=sys.stdout)
     #
     modem_gps_init_parameters()
     # adjust log level
