@@ -42,12 +42,12 @@ class GPS_data():
         self._data={}
 
     def setData(self,data) :
-        #print("SET DATA===\n",data)
+        # print("SET DATA===\n",data)
         self._lock.acquire()
         for key in data.keys():
             self._data[key]=data[key]
         self._lock.release()
-        #print(self._data)
+        # print(self._data)
 
     def buildResult(self,result,data_set):
         for d in data_set:
@@ -89,6 +89,9 @@ class GPS_data():
             # in that case no frame has been received
             result.fix=False
             result.nbsat=0
+            # correction bug#67
+            # need to release the lock
+            self._lock.release()
             return result
 
         for sat in self._data['sat_num']:
