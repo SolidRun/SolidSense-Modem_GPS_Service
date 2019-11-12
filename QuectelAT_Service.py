@@ -193,7 +193,7 @@ class QuectelModem():
         r=self.sendATcommand("+QCFG=\"roamservice\"")
         modem_log.debug("Modem roaming configuration:"+r[0])
         rs=self.splitResponse("+QCFG",r[0])
-        #  print("roaming flag:",rs[1])
+        # print("roaming flag:",rs[1])
         if rs[1] != 2 :
             r=self.sendATcommand("+QCFG=\"roamservice\",2,1")
 
@@ -300,7 +300,13 @@ class QuectelModem():
             except IOError as err:
                 modem_log.info ("Reading operators database:"+fileName+" :"+str(err))
                 return
-            in_str= json.load(fp)
+            try:
+                in_str= json.load(fp)
+            except json.JSONDecodeError :
+                # wrong format
+                modem_log.error("Reading operators database:"+fileName+" Format error")
+                fp.close()
+                return False
             if in_str['IMSI'] != self._IMSI :
                 # SIM has been changed - information is void
                 modem_log.info("SIM CARD Changed")
@@ -316,7 +322,7 @@ class QuectelModem():
 
 
     def saveOperatorNames(self,fileName)  :
-        print("saving operators DB")
+        # print("saving operators DB")
         if not self.SIM_Ready() :
             return
         try:
@@ -339,7 +345,7 @@ class QuectelModem():
         out['operators'] = self._operatorNames
         # now save in file
         json.dump(out,fp)
-        modem_log.info ("Saved"+str(nbOper)+" names in:"+fileName)
+        modem_log.info ("Saved "+str(nbOper)+" names in:"+fileName)
         fp.close()
 
     #
