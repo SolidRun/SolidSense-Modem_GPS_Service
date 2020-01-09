@@ -7,7 +7,7 @@
 #
 # Created:     26/06/2019
 # Copyright:   (c) Laurent Carré Sterwen Technologies 2019
-# Licence:     <your licence>
+# Licence:     Eclipse Public License 1.0
 #-------------------------------------------------------------------------------
 
 import serial
@@ -162,6 +162,12 @@ class QuectelModem():
                 self._IMSI=r[0]
         else:
             self._SIM=False
+
+    def model(self):
+        return self._model
+
+    def manufacturer(self):
+        return "Quectel"
 
     def SIM_Ready(self):
         return self._SIM and self._SIM_STATUS == "READY"
