@@ -55,7 +55,7 @@ def main():
         if rs.SIM_status ==  'READY':
             print("IMSI:",rs.IMSI)
             if rs.registered :
-                print("On:",rs.network_reg," Network:",rs.network," Radio:",rs.rat,"Band:",rs.band," RSSI:",rs.rssi,"dBm")
+                print("On:",rs.network_reg," PLMNID:",rs.PLMNID," Network:",rs.network," Radio:",rs.rat," Band:",rs.band," LAC:",rs.lac," RSSI:",rs.rssi,"dBm")
             else :
                 print("Not registered - visible operators:\n",rs.operators)
         if rs.gps_on :

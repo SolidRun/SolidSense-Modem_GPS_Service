@@ -69,7 +69,7 @@ class QuectelModem():
             self._tty.write(buf.encode())
             self._tty.flush()
         except serial.serialutil.SerialException as err :
-            modem_log.error ("Send AT command Write error"+ str(err))
+            modem_log.error ("Send AT command Write error "+ str(err)+" command:"+buf)
             if self._logAT:
                 self._logfp.write(err+"\n")
             raise ModemException(err)
@@ -160,6 +160,8 @@ class QuectelModem():
             if sim_lock[0] == "READY":
                 r=self.sendATcommand("+CIMI")
                 self._IMSI=r[0]
+                # allow full notifications on registration change
+                self.sendATcommand("+CREG=2")
         else:
             self._SIM=False
 
@@ -243,7 +245,11 @@ class QuectelModem():
         """
         analyse response with unknown command inside
         """
-        cmd=resp.index(':')
+        try:
+            cmd=resp.index(':')
+        except ValueError :
+            modem_log.error("Unable to decode response:"+resp)
+            return " "
         return resp[:cmd]
 
 
@@ -251,11 +257,24 @@ class QuectelModem():
 
         if not self.SIM_Ready() :
             return False
+        # self.sendATcommand("+CREG=2")
         resp=self.sendATcommand("+CREG?")
         # warning some spontaneous messages can come
+        vresp=None
         for r in resp:
             if self.checkResponse(r) == '+CREG' :
                 vresp=r
+        if vresp == None :
+            modem_log.error("No registration status returned (+CREG)")
+            return False
+        return self.decodeRegistration(vresp)
+
+    def decodeRegistration(self,vresp):
+        '''
+        Decode the registration message
+        Read all network attachment characteristics
+        '''
+
         param=self.splitResponse("+CREG",vresp)
         if param[1] == 1 :
             modem_log.info ("registered on home operator")
@@ -269,7 +288,20 @@ class QuectelModem():
                 modem_log.info ("registration DENIED")
             self._networkReg=None
             return False
+
         # print ("n:",param[0])
+        # get lac and ci
+        if param[0] == 2 :
+            try:
+                self._lac=int(param[2],16)
+                self._ci=int(param[3],16)
+            except ValueError :
+                modem_log.error("Error decoding LAC or CI")
+                self._lac=0
+                self._ci=0
+        else:
+            self._lac=0
+            self._ci=0
         #
         #  get operator name
         #
@@ -282,7 +314,13 @@ class QuectelModem():
         # Get quality indicators
         #
         resp=self.sendATcommand("+QNWINFO")
-        param=self.splitResponse("+QNWINFO",resp[0])
+        self.decodeNetworkInfo(resp[0])
+        logstr="Registered on {0}/{1} PLMID {2} LAC {3} RAT {4} BAND {5} RSSI {6}".format(self._networkName,self._networkReg,self._regPLMN,self._lac,self._rat,self._band,self._rssi)
+        modem_log.info(logstr)
+        return True
+
+    def decodeNetworkInfo(self,resp):
+        param=self.splitResponse("+QNWINFO",resp)
         self._rat=param[0]
         if len(param) >= 3 :
             self._band=param[2]
@@ -296,7 +334,31 @@ class QuectelModem():
         else:
             self._rssi= 99
 
+    def networkInfo(self):
+        '''
+        Check the network information RAT/PLMNID/BAND
+        if registration has changed then go for full registration decoding
+        '''
+        resp=self.sendATcommand("+QNWINFO")
+        regresp=None
+        inforesp=None
+        for r in resp:
+
+            if self.checkResponse(r) == "+QNWINFO"  :
+                inforesp=  r
+            elif self.checkResponse(r) == "+CREG":
+                regresp=r
+
+        if regresp != None :
+            return self.decodeRegistration(regresp)
+        if inforesp == None :
+            modem_log.error("Error reading network info")
+            return False
+        self.decodeNetworkInfo(inforesp)
+        logstr="Network info RAT {0} BAND {1} RSSI {2}".format(self._rat,self._band,self._rssi)
+        modem_log.info(logstr)
         return True
+
 
     def readOperatorNames(self,fileName):
         if os.path.exists(fileName) :
@@ -440,6 +502,8 @@ class QuectelModem():
                 out['PLMNID']=self._regPLMN
                 out['network_name'] = self._networkName
                 out['network']=self.decodePLMN(self._regPLMN)
+                out['lac'] = self._lac
+                out['ci'] = self._ci
                 out['rat']  = self._rat
                 out['band'] = self._band
                 out['rssi'] = self._rssi
@@ -482,14 +546,17 @@ class QuectelModem():
         # now the GPS is on let's see what have
         #
         status['state']='on'
+        # modem_log.debug("GPS is ON")
         #
         # check NMEA port
         #
+        # modem_log.debug("Reading NMEA port parameters")
         resp=self.sendATcommand("+QGPSCFG=\"outport\"")
         param=self.splitResponse("+QGPSCFG",resp[0])
         status["NMEA_port1"]=param[0]
         status['NMEA_port2']=param[1]
         # read values
+        # modem_log.debug("Reading GPS via AT")
         resp=self.sendATcommand("+QGPSLOC=0")
         #print("GPS RESP=",resp)
         # check that we are fixed

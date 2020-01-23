@@ -60,6 +60,8 @@ message ModemStatus {
 	uint32 PLMNID=8;
 	string network_name=9;
 	string network=10;
+	uint32 lac=15;
+	uint32 ci=16;
 	string rat=11;
 	string band=12;
 	sint32 rssi=13;
