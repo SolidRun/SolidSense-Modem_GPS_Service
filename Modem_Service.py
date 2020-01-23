@@ -10,7 +10,7 @@
 # Licence:     <your licence>
 #-------------------------------------------------------------------------------
 
-
+import threading
 from QuectelAT_Service import *
 from Modem_GPS_Parameters import *
 
@@ -22,6 +22,7 @@ class Modem_Service():
         self._openFlag=False
         self._modem=None
         self._device=getparam('modem_ctrl')
+        self._statusLock= threading.Lock()
 
     def checkCard(self):
         try:
@@ -62,6 +63,7 @@ class Modem_Service():
                     self._modem.saveOperatorNames(buildFileName('operatorsDB'))
                 if self._modem.networkStatus():
                     self._modem.logNetworkStatus()
+
                     break
                 else:
                     time.sleep(2.0)
@@ -84,9 +86,39 @@ class Modem_Service():
         #
         #  now check the GPS status
         #
+        mdm_serv_log.debug("Checking GPS status")
         gps_stat=self._modem.getGpsStatus()
         mdm_serv_log.debug("GPS "+str(gps_stat))
+        '''
+        Now we need to start a timer to read the network status regularly
+        '''
+        if self._modem.SIM_Ready():
+            mdm_serv_log.debug("Arming timer for periodic reading")
+            self.armTimer()
         return
+
+    def readStatus(self):
+        self._statusLock.acquire()
+        mdm_serv_log.debug("Reading status begin")
+        self.open()
+        self._modem.networkInfo()
+        self.close()
+        mdm_serv_log.debug("reading status ends")
+        self._statusLock.release()
+
+    @staticmethod
+    def statusTimer(args):
+        #print("Modem status timer lapse")
+        mdm=args
+        mdm.readStatus()
+        mdm.armTimer()
+
+    def armTimer(self) :
+        delay=getparam('timer')
+        if delay == None : delay=60.
+        a=[self]
+        self._timer=threading.Timer(delay,Modem_Service.statusTimer,args=a)
+        self._timer.start()
 
     def close(self):
         """
@@ -126,7 +158,14 @@ class Modem_Service():
         if not self._openFlag :
             self.open()
         if cmd == 'status' :
+            self._statusLock.acquire()
+            mdm_serv_log.debug("command status begins")
+            self.open()
+            self._modem.networkInfo()
             resp_dict=self._modem.modemStatus()
+            self.close()
+            mdm_serv_log.debug("command status ends")
+            self._statusLock.release()
             resp_msg="OK"
         elif cmd == "reset":
             self._modem.resetCard()

@@ -55,6 +55,7 @@ def default_param():
     out['operatorsDB']="operatorsDB"
     out['trace']= "info"
     out['roaming']=True
+    out['timer']=300.
 
     modem_gps_parameters=out
 
