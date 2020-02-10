@@ -253,7 +253,7 @@ class QuectelModem():
         return resp[:cmd]
 
 
-    def networkStatus(self):
+    def networkStatus(self,log=True):
 
         if not self.SIM_Ready() :
             return False
@@ -267,20 +267,21 @@ class QuectelModem():
         if vresp == None :
             modem_log.error("No registration status returned (+CREG)")
             return False
-        return self.decodeRegistration(vresp)
+        return self.decodeRegistration(vresp,log)
 
-    def decodeRegistration(self,vresp):
+    def decodeRegistration(self,vresp,log):
         '''
         Decode the registration message
         Read all network attachment characteristics
         '''
 
         param=self.splitResponse("+CREG",vresp)
+        # modem_log.info("Network registration status:"+str(param[1]))
         if param[1] == 1 :
-            modem_log.info ("registered on home operator")
+            if log : modem_log.info ("registered on home operator")
             self._networkReg="HOME"
         elif param[1] == 5 :
-            modem_log.info ("registered on roaming" )
+            if log : modem_log.info ("registered on roaming" )
             self._networkReg="ROAMING"
         else:
             modem_log.info ("not registered")
@@ -293,10 +294,15 @@ class QuectelModem():
         # get lac and ci
         if param[0] == 2 :
             try:
-                self._lac=int(param[2],16)
+                if type(param[2]) == int :
+                    self._lac = param[2]
+                else:
+                    self._lac=int(param[2],16)
                 self._ci=int(param[3],16)
-            except ValueError :
+            except (ValueError,TypeError) :
                 modem_log.error("Error decoding LAC or CI")
+                print("LAC:",param[2],"CI:",param[3])
+                print(type(param[2]))
                 self._lac=0
                 self._ci=0
         else:
@@ -315,8 +321,9 @@ class QuectelModem():
         #
         resp=self.sendATcommand("+QNWINFO")
         self.decodeNetworkInfo(resp[0])
-        logstr="Registered on {0}/{1} PLMID {2} LAC {3} RAT {4} BAND {5} RSSI {6}".format(self._networkName,self._networkReg,self._regPLMN,self._lac,self._rat,self._band,self._rssi)
-        modem_log.info(logstr)
+        if log :
+            logstr="Registered on {0}/{1} PLMID {2} LAC {3} CI {7} BAND {5} RSSI {6}".format(self._networkName,self._networkReg,self._regPLMN,self._lac,self._rat,self._band,self._rssi,self._ci)
+            modem_log.info(logstr)
         return True
 
     def decodeNetworkInfo(self,resp):
@@ -329,8 +336,10 @@ class QuectelModem():
         resp=self.sendATcommand("+CSQ")
         param=self.splitResponse("+CSQ",resp[0])
         #print("Quality indicator:",param)
-        if param[0] <= 30 :
+        if param[0] <= 31 :
             self._rssi= -113 +(param[0]*2)
+        elif param[0] >= 100 and param[0] <= 191 :
+            self._rssi= -116 + (param[0] - 100 )
         else:
             self._rssi= 99
 
@@ -339,6 +348,11 @@ class QuectelModem():
         Check the network information RAT/PLMNID/BAND
         if registration has changed then go for full registration decoding
         '''
+        if not self.SIM_Ready() :
+            # pointless to continue
+            modem_log.info("Network Info => No SIM")
+            return False
+
         resp=self.sendATcommand("+QNWINFO")
         regresp=None
         inforesp=None
@@ -350,12 +364,14 @@ class QuectelModem():
                 regresp=r
 
         if regresp != None :
-            return self.decodeRegistration(regresp)
+            return self.decodeRegistration(regresp,log=False)
+        else:
+            self.networkStatus(False)
         if inforesp == None :
             modem_log.error("Error reading network info")
             return False
         self.decodeNetworkInfo(inforesp)
-        logstr="Network info RAT {0} BAND {1} RSSI {2}".format(self._rat,self._band,self._rssi)
+        logstr="Network {4} {0} LAC:{2} CI:{3} RSSI:{1}".format(self._band,self._rssi,self._lac,self._ci,self._regPLMN)
         modem_log.info(logstr)
         return True
 
@@ -425,6 +441,9 @@ class QuectelModem():
           6:'3G HSDPA/HSUPA',7:'LTE',100:'CDMA'}
         # print ("Looking for operators....." )
         resp=self.sendATcommand("+COPS=?")
+        if len(resp) == 0 :
+            result=''
+            return
         oper=resp[0].split('(')
         result=''
         # print ("Operators visible by the modem")
@@ -448,6 +467,34 @@ class QuectelModem():
             except KeyError :
                 continue
         return result
+
+
+
+    def selectOperator(self,operator,name_format='long',rat=None):
+        '''
+        select an operator => automatic if failed
+        '''
+        rat_index={ "GSM":0,"UTRAN":2,"LTE":7}
+        modem_log.info("Selecting the operator:"+str(operator)+" with RAT:"+str(rat))
+        if operator == 'AUTO' :
+            cmd = "+COPS=0"
+        else:
+            if name_format == 'long' :
+                cmd="+COPS=4,0,%s" % operator
+            else:
+                cmd="+COPS=4,2,%s" % str(operator)
+            if rat != None :
+                rat_idx=rat_index.get(rat,None)
+            else:
+                rat_idx=None
+            if rat_idx != None:
+                cmd += ","+str(rat_idx)
+        try:
+            resp=self.sendATcommand(cmd,raiseException=True)
+        except ModemException as err:
+            modem_log.error("Failed to set operator:"+str(operator))
+            return
+        self.networkStatus()
 
     def decodePLMN(self,plmnid) :
 
@@ -485,7 +532,7 @@ class QuectelModem():
         else :
             modem_log.info ("NO SIM Inserted"  )
 
-    def modemStatus(self):
+    def modemStatus(self,showOperators=False):
         out={}
         out['model']= self._model+" "+self._rev
         out['IMEI']= self.IMEI ()
@@ -507,6 +554,8 @@ class QuectelModem():
                 out['rat']  = self._rat
                 out['band'] = self._band
                 out['rssi'] = self._rssi
+                if showOperators :
+                    out['operators']  =self.visibleOperators()
             else:
                 out['registered']  = False
                 out['operators'] = self.visibleOperators()

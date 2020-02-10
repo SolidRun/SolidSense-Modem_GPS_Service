@@ -154,15 +154,29 @@ class Modem_Service():
     def controlIf(self):
         return self._device
 
-    def executeCommand(self,cmd):
+    def executeCommand(self,cmd_line):
+        cmdt=cmd_line.split(',')
+        cmd=cmdt[0]
         if not self._openFlag :
             self.open()
-        if cmd == 'status' :
+        if cmd == 'status' or cmd == 'operator' :
             self._statusLock.acquire()
             mdm_serv_log.debug("command status begins")
             self.open()
-            self._modem.networkInfo()
-            resp_dict=self._modem.modemStatus()
+            showOp=False
+            if self._modem.networkInfo() :
+
+                if cmd == 'operator':
+                    if len(cmdt) > 1 :
+                        # here we try to set the operator
+                        if len(cmdt) > 2 :
+                            rat=cmdt[2]
+                        else:
+                            rat=None
+                        self._modem.selectOperator(cmdt[1],rat=rat)
+                    else:
+                        showOp=True
+            resp_dict=self._modem.modemStatus(showOp)
             self.close()
             mdm_serv_log.debug("command status ends")
             self._statusLock.release()

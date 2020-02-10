@@ -43,21 +43,31 @@ class Modem_Client():
         return resp
 
 
+def printStatus(rs):
+    print("model:",rs.model,"IMEI:",rs.IMEI,"GPS ON:",rs.gps_on," SIM:",rs.SIM_status)
+    if rs.SIM_status ==  'READY':
+        print("IMSI:",rs.IMSI)
+        if rs.registered :
+            print("On:",rs.network_reg," PLMNID:",rs.PLMNID," Network:",rs.network," Radio:",rs.rat," Band:",rs.band," LAC:",rs.lac," RSSI:",rs.rssi,"dBm")
+        else :
+            print("Not registered - visible operators:\n",rs.operators)
+
+
+
 def main():
 
     gps=Modem_Client(sys.argv[1])
     print("====GPS Server :",sys.argv[1]," Connected ============")
-    resp=gps.modemCmd(sys.argv[2])
+    cmd=sys.argv[2]
+    if len(sys.argv) > 3 :
+        for arg in sys.argv[3:] :
+            cmd += ',' + arg
+    print("modem command:",cmd)
+    resp=gps.modemCmd(cmd)
     print("Receive frame=",resp.frameID," :",resp.response)
     if sys.argv[2]=='status' and resp.response == 'OK':
         rs=resp.status
-        print("model:",rs.model,"IMEI:",rs.IMEI,"GPS ON:",rs.gps_on," SIM:",rs.SIM_status)
-        if rs.SIM_status ==  'READY':
-            print("IMSI:",rs.IMSI)
-            if rs.registered :
-                print("On:",rs.network_reg," PLMNID:",rs.PLMNID," Network:",rs.network," Radio:",rs.rat," Band:",rs.band," LAC:",rs.lac," RSSI:",rs.rssi,"dBm")
-            else :
-                print("Not registered - visible operators:\n",rs.operators)
+        printStatus(rs)
         if rs.gps_on :
             resp=gps.getGPSPrecision()
             print("Receive frame=",resp.frameID)
@@ -72,6 +82,11 @@ def main():
                     res= res+str(n)+","
                 res=res+"]"
                 print (res)
+    elif sys.argv[2] == 'operator' :
+        rs=resp.status
+        printStatus(rs)
+        print("Visible operators\n",rs.operators)
+
 
 
 
