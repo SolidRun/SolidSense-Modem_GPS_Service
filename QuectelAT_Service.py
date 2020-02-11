@@ -32,7 +32,7 @@ class QuectelModem():
         self.open()
         self._logAT=log
         if self._logAT :
-            self._logfp=open("asmm-atcmd.log","a")
+            self._logfp=open("/data/solidsense/atcmd.log","a")
             header="*** New session %s ****\n"% datetime.datetime.now().isoformat(' ')
             self._logfp.write(header)
 
@@ -298,11 +298,14 @@ class QuectelModem():
                     self._lac = param[2]
                 else:
                     self._lac=int(param[2],16)
-                self._ci=int(param[3],16)
+                if type(param[3]) == int:
+                    self._ci = param[3]
+                else:
+                    self._ci=int(param[3],16)
             except (ValueError,TypeError) :
                 modem_log.error("Error decoding LAC or CI")
                 print("LAC:",param[2],"CI:",param[3])
-                print(type(param[2]))
+                print(type(param[2]),type(param[3]))
                 self._lac=0
                 self._ci=0
         else:
@@ -440,7 +443,9 @@ class QuectelModem():
         rat = {0:'GSM',2:'UTRAN',3:'GSM/GPRS',4:'3G HSDPA',5:'3G HSUPA',
           6:'3G HSDPA/HSUPA',7:'LTE',100:'CDMA'}
         # print ("Looking for operators....." )
+        modem_log.info("Start looking for visible networks...")
         resp=self.sendATcommand("+COPS=?")
+        modem_log.info("End of networks search")
         if len(resp) == 0 :
             result=''
             return
@@ -476,6 +481,9 @@ class QuectelModem():
         '''
         rat_index={ "GSM":0,"UTRAN":2,"LTE":7}
         modem_log.info("Selecting the operator:"+str(operator)+" with RAT:"+str(rat))
+        if operator == "CURRENT" :
+            operator = self._networkName
+
         if operator == 'AUTO' :
             cmd = "+COPS=0"
         else:
@@ -490,6 +498,7 @@ class QuectelModem():
             if rat_idx != None:
                 cmd += ","+str(rat_idx)
         try:
+            print(cmd)
             resp=self.sendATcommand(cmd,raiseException=True)
         except ModemException as err:
             modem_log.error("Failed to set operator:"+str(operator))

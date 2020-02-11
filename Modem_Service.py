@@ -173,7 +173,12 @@ class Modem_Service():
                             rat=cmdt[2]
                         else:
                             rat=None
-                        self._modem.selectOperator(cmdt[1],rat=rat)
+                        if cmdt[1].isdecimal():
+                            f='numeric'
+                        else:
+                            f='long'
+
+                        self._modem.selectOperator(cmdt[1],name_format=f,rat=rat)
                     else:
                         showOp=True
             resp_dict=self._modem.modemStatus(showOp)
