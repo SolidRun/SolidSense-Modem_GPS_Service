@@ -61,7 +61,10 @@ def main():
     cmd=sys.argv[2]
     if len(sys.argv) > 3 :
         for arg in sys.argv[3:] :
-            cmd += ',' + arg
+            if len(arg) > 0 :
+                cmd += ',' + arg
+            else:
+                break
     print("modem command:",cmd)
     resp=gps.modemCmd(cmd)
     print("Receive frame=",resp.frameID," :",resp.response)

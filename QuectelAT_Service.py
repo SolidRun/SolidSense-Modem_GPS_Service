@@ -498,7 +498,7 @@ class QuectelModem():
             if rat_idx != None:
                 cmd += ","+str(rat_idx)
         try:
-            print(cmd)
+            modem_log.debug("Select operator CMD="+cmd)
             resp=self.sendATcommand(cmd,raiseException=True)
         except ModemException as err:
             modem_log.error("Failed to set operator:"+str(operator))
