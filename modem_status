@@ -70,6 +70,6 @@ if [ -n "${RAT}" ]; then
 		OPT2=${RAT}
 	fi
 fi
-echo "${COMMAND} ${OPT1} ${OPT2}"
+# echo "${COMMAND} ${OPT1} ${OPT2}"
 
 python3 /opt/SolidSense/modem_gps/Modem_Service_Client.py 127.0.0.1:20231 ${COMMAND} "${OPT1}" ${OPT2}
