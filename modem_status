@@ -2,6 +2,9 @@
 #
 #  modem gps service on solid sense status request
 #
+
+MDM_DIR=/opt/SolidSense/modem_gps
+
 # functions
 
 usage () {
@@ -10,11 +13,34 @@ usage () {
 	echo "    -l|--list                     :list available networks"
 	echo "    -n|--network                  :select an network"
 	echo "    -r|--rat                      :select a RAT (GSM/UTRAN/LTE)"
-	echo "	  no arguments			:print the modem status"
+	echo "	  -R|--reset					:reset the modem (as sudo)"
+	echo "	  -c|--check					:check modem presence (as sudo)"
+	echo "	  no arguments					:print the modem status"
 	exit 1
 }
 
-options=$(getopt -l "help,list,network:,rat:" -o "hln:r:" -- "${@}")
+reset () {
+	echo " Resetting the modem, all communication will stop"
+	systemctl stop modem_gps
+	python3 $MDM_DIR/Factory_Reset.py OK
+	echo "Wait 30 seconds before performing further actions. Power cycle recommended"
+	
+}
+
+check () {
+	if [ -e /dev/ttyUSB3 ] ; then
+		echo "Modem control file present"
+		python3 $MDM_DIR/Factory_Reset.py
+		return 0
+	else
+		echo "No Modem control file detected"
+		lsusb
+		return 1
+	fi
+}
+			
+
+options=$(getopt -l "help,list,network:,rat:,reset,check" -o "hln:r:Rc" -- "${@}")
 eval set -- "${options}"
 
 COMMAND="status"
@@ -39,6 +65,16 @@ do
 		-r|--rat )
 			shift
 			RAT="${1}"
+			;;
+		-c|--check )
+			shift
+			check
+			exit
+			;;
+		-R|--reset )
+			shift
+			reset
+			exit
 			;;
 		\? )
 			usage
