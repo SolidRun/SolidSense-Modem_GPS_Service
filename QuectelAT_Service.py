@@ -353,13 +353,16 @@ class QuectelModem():
         if registration has changed then go for full registration decoding
         '''
 
-        if self._networkReg == None :
-            # no registration, so no need to get further action
-            return
+
         if not self.SIM_Ready() :
             # pointless to continue
             modem_log.info("Network Info => No SIM")
-            return False*
+            return False
+        if self._networkReg == None :
+            # no registration, so no need to get further action
+            modem_log.info("Network info => not registered")
+            return False
+
         resp=self.sendATcommand("+QNWINFO")
         regresp=None
         inforesp=None
