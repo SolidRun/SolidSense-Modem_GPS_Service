@@ -258,6 +258,7 @@ class QuectelModem():
         if not self.SIM_Ready() :
             return False
         # self.sendATcommand("+CREG=2")
+        self._networkReg = None
         resp=self.sendATcommand("+CREG?")
         # warning some spontaneous messages can come
         vresp=None
@@ -351,11 +352,14 @@ class QuectelModem():
         Check the network information RAT/PLMNID/BAND
         if registration has changed then go for full registration decoding
         '''
+
+        if self._networkReg == None :
+            # no registration, so no need to get further action
+            return
         if not self.SIM_Ready() :
             # pointless to continue
             modem_log.info("Network Info => No SIM")
-            return False
-
+            return False*
         resp=self.sendATcommand("+QNWINFO")
         regresp=None
         inforesp=None
