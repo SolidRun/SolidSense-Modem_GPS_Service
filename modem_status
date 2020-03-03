@@ -2,4 +2,110 @@
 #
 #  modem gps service on solid sense status request
 #
-python3 /opt/SolidSense/modem_gps/Modem_Service_Client.py localhost:20231 status
+
+MDM_DIR=/opt/SolidSense/modem_gps
+
+# functions
+
+usage () {
+	echo "${PROG_NAME}:"
+	echo "    -h|--help			:display this help"
+	echo "    -l|--list                     :list available networks"
+	echo "    -n|--network                  :select an network"
+	echo "    -r|--rat                      :select a RAT (GSM/UTRAN/LTE)"
+	echo "	  -R|--reset					:reset the modem (as sudo)"
+	echo "	  -c|--check					:check modem presence (as sudo)"
+	echo "	  no arguments					:print the modem status"
+	exit 1
+}
+
+reset () {
+	echo " Resetting the modem, all communication will stop"
+	systemctl stop modem_gps
+	python3 $MDM_DIR/Factory_Reset.py OK
+	echo "Wait 30 seconds before performing further actions. Power cycle recommended"
+	
+}
+
+check () {
+	if [ -e /dev/ttyUSB3 ] ; then
+		echo "Modem control file present"
+		python3 $MDM_DIR/Factory_Reset.py
+		return 0
+	else
+		echo "No Modem control file detected"
+		lsusb
+		return 1
+	fi
+}
+			
+
+options=$(getopt -l "help,list,network:,rat:,reset,check" -o "hln:r:Rc" -- "${@}")
+eval set -- "${options}"
+
+COMMAND="status"
+NETWORK=""
+RAT=""
+OPT1=""
+OPT2=""
+
+while true
+do
+	case "${1}" in
+		-h|--help )
+			usage
+			;;
+		-l|--list )
+			COMMAND="operator"
+			;;
+		-n|--network )
+			shift
+			NETWORK="${1}"
+			;;
+		-r|--rat )
+			shift
+			RAT="${1}"
+			;;
+		-c|--check )
+			shift
+			check
+			exit
+			;;
+		-R|--reset )
+			shift
+			reset
+			exit
+			;;
+		\? )
+			usage
+			;;
+		: )
+			echo "Invalid option: ${OPTARG} requires an argument" 1>&2
+			;;
+		-- )
+			shift
+			break
+			;;
+		* )
+			break
+			;;
+	esac
+	shift
+done
+
+if [ -n "${NETWORK}" ]; then
+	COMMAND="operator"
+	OPT1=${NETWORK}
+fi
+if [ -n "${RAT}" ]; then
+	if [ -z "${NETWORK}" ]; then
+		COMMAND="operator"
+		OPT1="CURRENT"
+		OPT2=${RAT}
+	else
+		OPT2=${RAT}
+	fi
+fi
+# echo "${COMMAND} ${OPT1} ${OPT2}"
+
+python3 /opt/SolidSense/modem_gps/Modem_Service_Client.py 127.0.0.1:20231 ${COMMAND} "${OPT1}" ${OPT2}
