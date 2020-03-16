@@ -63,11 +63,20 @@ class Modem_Service():
                     self._modem.saveOperatorNames(buildFileName('operatorsDB'))
                 if self._modem.networkStatus():
                     self._modem.logNetworkStatus()
-
                     break
                 else:
-                    time.sleep(2.0)
+                    # SIM is ready but we have a registration problem
+                    if self._modem.regStatus() == "DENIED" :
+                        # nothing we can do here
+                        break
+                    elif self._modem.regStatus() == "IN PROGRES" :
+                        time.sleep(2.0)
+                    elif self._modem.regStatus() == "NO REG":
+                        # force new registration
+                        self._modem.selectOperator('AUTO')
+                        time.sleep(2.0)
                     nb_attempt= nb_attempt+1
+
             elif self._modem.SIM_Present() and not pin_set:
                 if self._modem.SIM_Status() == "SIM PIN" :
                     #  ok we need a PIN code

@@ -32,9 +32,11 @@ class QuectelModem():
         self.open()
         self._logAT=log
         if self._logAT :
-            self._logfp=open("/data/solidsense/atcmd.log","a")
+            self._logfp=open("/data/solidsense/modem_gps/atcmd.log","a")
             header="*** New session %s ****\n"% datetime.datetime.now().isoformat(' ')
             self._logfp.write(header)
+
+        self._isRegistered= False
 
         self.initialize()
         self._operatorNames=None # dictionary PLMN/Operator name
@@ -270,6 +272,9 @@ class QuectelModem():
             return False
         return self.decodeRegistration(vresp,log)
 
+    def regStatus(self):
+        return self._networkReg
+
     def decodeRegistration(self,vresp,log):
         '''
         Decode the registration message
@@ -285,10 +290,21 @@ class QuectelModem():
             if log : modem_log.info ("registered on roaming" )
             self._networkReg="ROAMING"
         else:
+            '''
+            Correction of issue 534
+            If the modem is not actively looking for a network
+            Then we need to restart the sequence
+            '''
             modem_log.info ("not registered")
             if param[1] == 3 :
                 modem_log.info ("registration DENIED")
-            self._networkReg=None
+                self._networkReg="DENIED"
+            elif param[1] == 2 :
+                modem_log.info("Registration in progress. looking for a network...")
+                self._networkReg="IN PROGRESS"
+            else:
+                modem_log.error("No registration in progress => back to AUTO search...")
+                self._networkReg="NO REG"
             return False
 
         # print ("n:",param[0])
@@ -320,13 +336,14 @@ class QuectelModem():
         param=self.splitResponse("+QSPN",resp[0])
         self._networkName=param[0]
         self._regPLMN=param[4]
+        self._isRegistered = True
         #
         # Get quality indicators
         #
         resp=self.sendATcommand("+QNWINFO")
         self.decodeNetworkInfo(resp[0])
         if log :
-            logstr="Registered on {0}/{1} PLMID {2} LAC {3} CI {7} BAND {5} RSSI {6}".format(self._networkName,self._networkReg,self._regPLMN,self._lac,self._rat,self._band,self._rssi,self._ci)
+            logstr="Registered on {0}/{1} PLMID {2} LAC {3} CI {7} RAT {4} BAND {5} RSSI {6}".format(self._networkName,self._networkReg,self._regPLMN,self._lac,self._rat,self._band,self._rssi,self._ci)
             modem_log.info(logstr)
         return True
 
@@ -358,7 +375,7 @@ class QuectelModem():
             # pointless to continue
             modem_log.info("Network Info => No SIM")
             return False
-        if self._networkReg == None :
+        if not self._isRegistered :
             # no registration, so no need to get further action
             modem_log.info("Network info => not registered")
             return False
@@ -490,14 +507,15 @@ class QuectelModem():
         modem_log.info("Selecting the operator:"+str(operator)+" with RAT:"+str(rat))
         if operator == "CURRENT" :
             operator = self._networkName
+            name_format='long'
 
         if operator == 'AUTO' :
             cmd = "+COPS=0"
         else:
             if name_format == 'long' :
-                cmd="+COPS=4,0,%s" % operator
+                cmd="+COPS=1,0,%s" % operator
             else:
-                cmd="+COPS=4,2,%s" % str(operator)
+                cmd="+COPS=1,2,%s" % str(operator)
             if rat != None :
                 rat_idx=rat_index.get(rat,None)
             else:
@@ -505,7 +523,7 @@ class QuectelModem():
             if rat_idx != None:
                 cmd += ","+str(rat_idx)
         try:
-            modem_log.debug("Select operator CMD="+cmd)
+            modem_log.debug("Select operator CMD: "+cmd)
             resp=self.sendATcommand(cmd,raiseException=True)
         except ModemException as err:
             modem_log.error("Failed to set operator:"+str(operator))
@@ -532,7 +550,7 @@ class QuectelModem():
 
 
     def logNetworkStatus(self):
-        if self._networkReg == None :
+        if not self._isRegistered :
             modem_log.info ("Not registered")
         else:
             modem_log.info (self._networkReg+":"+self._networkName+" PLMN:"+\
@@ -559,7 +577,7 @@ class QuectelModem():
         out['SIM_status']= self.SIM_Status()
         if self.SIM_Present() :
             out['IMSI'] = self.IMSI()
-            if self._networkReg != None :
+            if self._isRegistered :
                 out['registered'] = True
                 out['network_reg']= self._networkReg
                 out['PLMNID']=self._regPLMN
