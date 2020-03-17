@@ -37,6 +37,7 @@ class QuectelModem():
             self._logfp.write(header)
 
         self._isRegistered= False
+        self._networkReg="UNKNOWN"
 
         self.initialize()
         self._operatorNames=None # dictionary PLMN/Operator name
@@ -260,7 +261,7 @@ class QuectelModem():
         if not self.SIM_Ready() :
             return False
         # self.sendATcommand("+CREG=2")
-        self._networkReg = None
+        # self._networkReg = None
         resp=self.sendATcommand("+CREG?")
         # warning some spontaneous messages can come
         vresp=None
@@ -377,7 +378,7 @@ class QuectelModem():
             return False
         if not self._isRegistered :
             # no registration, so no need to get further action
-            modem_log.info("Network info => not registered")
+            modem_log.info("Network info => not registered: "+self._networkReg)
             return False
 
         resp=self.sendATcommand("+QNWINFO")
@@ -589,10 +590,11 @@ class QuectelModem():
                 out['band'] = self._band
                 out['rssi'] = self._rssi
                 if showOperators :
-                    out['operators']  =self.visibleOperators()
+                   out['operators']  =self.visibleOperators()
             else:
                 out['registered']  = False
-                out['operators'] = self.visibleOperators()
+                if showOperators :
+                    out['operators'] = self.visibleOperators()
 
         return out
 

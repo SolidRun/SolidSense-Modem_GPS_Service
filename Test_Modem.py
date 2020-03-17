@@ -29,16 +29,34 @@ def main():
 
     modem.logModemStatus()
     if modem.SIM_Ready():
-        # clear forbidden PLMN and allow roaming
-        modem.clearFPLMN()
-        modem.allowRoaming()
-        modem.selectOperator('AUTO')
+        # we have a SIM so look how it goaes
         res= modem.networkStatus()
-        modem.logNetworkStatus()
-        if not res :
-            print(modem.visibleOperators())
-        #else:
-           # modem.selectOperator('CURRENT',rat="LTE")
+        if res :
+            # ok we are attached
+            modem.logNetworkStatus()
+        else:
+            # let's see what is the situation
+            state=modem.regStatus()
+            print(state)
+            if state == "IN PROGRESS" :
+                # just wait
+                print("Registration in progress => waiting")
+                nb_attemp=0
+                while nb_attempt < 10 :
+                    time.sleep(2.0)
+                    res=modem.networkStatus()
+                    if res : break
+            else:
+                print(modem.visibleOperators())
+                # try to Register from scratch
+                # clear forbidden PLMN and allow roaming
+                modem.clearFPLMN()
+                modem.allowRoaming()
+                modem.selectOperator('AUTO')
+                time.sleep(10.0)
+                res= modem.networkStatus()
+                modem.logNetworkStatus()
+
     modem.close()
 
 
