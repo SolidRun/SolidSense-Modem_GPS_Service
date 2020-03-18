@@ -9,8 +9,9 @@ MDM_DIR=/opt/SolidSense/modem_gps
 
 usage () {
 	echo "${PROG_NAME}:"
-	echo "    -h|--help			:display this help"
+	echo "    -h|--help						:display this help"
 	echo "    -l|--list                     :list available networks"
+	echo "    -t|--test						:test the modem and attachment (as sudo)"
 	echo "    -n|--network                  :select an network"
 	echo "    -r|--rat                      :select a RAT (GSM/UTRAN/LTE)"
 	echo "	  -R|--reset					:reset the modem (as sudo)"
@@ -38,9 +39,16 @@ check () {
 		return 1
 	fi
 }
+
+test_modem () {
+	echo "testing the modem - service will stop"
+	systemctl stop modem_gps
+	python3 $MDM_DIR/Test_Modem.py
+	echo "to restart the service if test is ok: systemctl start modem_gps"
+}
 			
 
-options=$(getopt -l "help,list,network:,rat:,reset,check" -o "hln:r:Rc" -- "${@}")
+options=$(getopt -l "help,list,network:,rat:,reset,check,test" -o "hln:r:Rct" -- "${@}")
 eval set -- "${options}"
 
 COMMAND="status"
@@ -69,6 +77,11 @@ do
 		-c|--check )
 			shift
 			check
+			exit
+			;;
+		-t|--check )
+			shift
+			test_modem
 			exit
 			;;
 		-R|--reset )
