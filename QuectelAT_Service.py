@@ -18,7 +18,7 @@ import datetime
 import logging
 
 
-modem_log=logging.getLogger('Modem_GPS_Service')
+modem_log=None
 
 
 class ModemException(Exception) :
@@ -28,6 +28,8 @@ class QuectelModem():
 
 
     def __init__(self,ifName,log=False):
+        global modem_log
+        modem_log=logging.getLogger('Modem_GPS_Service')
         self._ifname = ifName
         self.open()
         self._logAT=log
@@ -224,6 +226,7 @@ class QuectelModem():
     def splitResponse(self,cmd,resp) :
         st=resp.find(cmd)
         if st == -1 :
+            modem_log.error("Modem sent unexpected response:"+cmd+" response:"+resp)
             raise ModemException ("Wrong response:"+cmd+" : "+resp)
             return
         st=len(cmd)+2 # one for colon + one for space
@@ -296,7 +299,7 @@ class QuectelModem():
             If the modem is not actively looking for a network
             Then we need to restart the sequence
             '''
-            modem_log.info ("not registered")
+            # modem_log.info ("not registered")
             if param[1] == 3 :
                 modem_log.info ("registration DENIED")
                 self._networkReg="DENIED"
@@ -341,8 +344,12 @@ class QuectelModem():
         #
         # Get quality indicators
         #
+        # print("Decoding network info")
         resp=self.sendATcommand("+QNWINFO")
-        self.decodeNetworkInfo(resp[0])
+        try:
+            self.decodeNetworkInfo(resp[0])
+        except ModemException :
+            return True
         if log :
             logstr="Registered on {0}/{1} PLMID {2} LAC {3} CI {7} RAT {4} BAND {5} RSSI {6}".format(self._networkName,self._networkReg,self._regPLMN,self._lac,self._rat,self._band,self._rssi,self._ci)
             modem_log.info(logstr)
@@ -401,6 +408,8 @@ class QuectelModem():
         self.decodeNetworkInfo(inforesp)
         logstr="Network {4} {0} LAC:{2} CI:{3} RSSI:{1}".format(self._band,self._rssi,self._lac,self._ci,self._regPLMN)
         modem_log.info(logstr)
+
+
         return True
 
 

@@ -12,12 +12,13 @@
 import logging
 import json
 
-local_log=logging.getLogger('Modem_GPS_Service')
+
 
 modem_gps_parameters=None
 
 def modem_gps_init_parameters():
     global modem_gps_parameters
+    local_log=logging.getLogger('Modem_GPS_Service')
     dir_h=getDataDir()
     fn=dir_h+'/parameters.json'
     try:

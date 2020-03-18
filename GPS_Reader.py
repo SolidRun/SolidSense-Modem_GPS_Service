@@ -15,16 +15,18 @@ import pynmea2
 import serial
 import logging
 
-gps_serv_log=logging.getLogger('Modem_GPS_Service')
+gps_serv_log=None
 
 class GPS_Reader():
 
     def __init__(self,tty="/dev/ttyUSB1"):
         # We assume that the GPS is turned on before
+        global gps_serv_log
         self._ready=False
         self._data={}
         self._data['fix']=False
         self._fix=False
+        gps_serv_log=logging.getLogger('Modem_GPS_Service')
         # print("Logging level:",gps_serv_log.getEffectiveLevel())
         try:
             self._tty=serial.Serial(tty,baudrate=9600,timeout=10.0)

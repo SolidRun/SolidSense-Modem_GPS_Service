@@ -31,22 +31,21 @@ def main():
     if modem.SIM_Ready():
         # we have a SIM so look how it goaes
         res= modem.networkStatus()
-        if res :
-            # ok we are attached
-            modem.logNetworkStatus()
-        else:
+
+        if not res :
             # let's see what is the situation
             state=modem.regStatus()
-            print(state)
+            print("Modem registration status:",state)
             if state == "IN PROGRESS" :
                 # just wait
                 print("Registration in progress => waiting")
-                nb_attemp=0
+                nb_attempt=0
                 while nb_attempt < 10 :
                     time.sleep(2.0)
                     res=modem.networkStatus()
                     if res : break
-            else:
+                    nb_attempt += 1
+            if not res:
                 print(modem.visibleOperators())
                 # try to Register from scratch
                 # clear forbidden PLMN and allow roaming
