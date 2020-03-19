@@ -352,7 +352,7 @@ def main():
     global grpc_server
     global gps_log
     #
-    gps_log=logging.getLogger('Modem_GPS_Service')
+
     '''
     f_log= logging.Formatter("%(asctime)s | [%(levelname)s] %(name)s@%(filename)s:%(lineno)d:%(message)s")
     l_handler= logging.StreamHandler()
@@ -362,8 +362,9 @@ def main():
     gps_log.setLevel(logging.DEBUG)
     '''
     logging.basicConfig(level=logging.DEBUG,format="%(asctime)s [%(levelname)s]:%(message)s",stream=sys.stdout)
+    gps_log=logging.getLogger('Modem_GPS_Service')
     #
-    modem_gps_init_parameters()
+    modem_gps_init_parameters(gps_log)
     # adjust log level
     gps_log.setLevel(getLogLevel())
     # print("Logging level:",gps_log.getEffectiveLevel())
