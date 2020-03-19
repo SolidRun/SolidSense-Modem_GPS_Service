@@ -19,6 +19,7 @@ import logging
 
 
 modem_log=None
+test_counter=0
 
 
 class ModemException(Exception) :
@@ -259,12 +260,20 @@ class QuectelModem():
         return resp[:cmd]
 
 
+
     def networkStatus(self,log=True):
 
         if not self.SIM_Ready() :
             return False
         # self.sendATcommand("+CREG=2")
         # self._networkReg = None
+        '''
+        global test_counter
+        test_counter += 1
+        if test_counter > 2 :
+            modem_log.info("Test = error simutation")
+            return False
+        '''
         resp=self.sendATcommand("+CREG?")
         # warning some spontaneous messages can come
         vresp=None
@@ -356,12 +365,14 @@ class QuectelModem():
         return True
 
     def decodeNetworkInfo(self,resp):
+
         param=self.splitResponse("+QNWINFO",resp)
         self._rat=param[0]
         if len(param) >= 3 :
             self._band=param[2]
         else:
             self._band="unknown"
+
         resp=self.sendATcommand("+CSQ")
         param=self.splitResponse("+CSQ",resp[0])
         #print("Quality indicator:",param)
@@ -372,6 +383,7 @@ class QuectelModem():
         else:
             self._rssi= 99
 
+    """
     def networkInfo(self):
         '''
         Check the network information RAT/PLMNID/BAND
@@ -411,6 +423,7 @@ class QuectelModem():
 
 
         return True
+    """
 
 
     def readOperatorNames(self,fileName):

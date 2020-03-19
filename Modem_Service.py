@@ -11,6 +11,7 @@
 #-------------------------------------------------------------------------------
 
 import threading
+import os
 from QuectelAT_Service import *
 from Modem_GPS_Parameters import *
 
@@ -25,6 +26,7 @@ class Modem_Service():
         self._modem=None
         self._device=getparam('modem_ctrl')
         self._statusLock= threading.Lock()
+        self._error_count=0
 
     def checkCard(self):
         try:
@@ -112,8 +114,20 @@ class Modem_Service():
     def readStatus(self):
         self._statusLock.acquire()
         mdm_serv_log.debug("Reading status begin")
+        nb_retry=getparam('nb_retry')
+        if nb_retry == None: nb_retry =5
         self.open()
-        self._modem.networkStatus()
+        if self._modem.networkStatus() :
+            self._error_count = 0
+        else:
+            self._error_count += 1
+            if self._error_count > nb_retry:
+                # here we have 10 times in a row a registration error
+                # better to attemp something else
+                mdm_serv_log.critical("Modem not registered after "+str(self._error_count - 1)+" attempt => RESET")
+                self._modem.resetCard()
+                time.sleep(20.)
+                os._exit(2)  # systemd shall restart the service
         self.close()
         mdm_serv_log.debug("reading status ends")
         self._statusLock.release()
