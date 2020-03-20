@@ -15,6 +15,15 @@ import time
 
 from QuectelAT_Service import *
 
+def checkSMS(modem):
+    resp=modem.sendATcommand("+CSMS?")
+    s=modem.splitResponse("+CSMS",resp[0])
+    print("SMS service type",s[0],"MO:",s[1],"MT:",s[2],"BM:",s[3])
+    resp=modem.sendATcommand("+CSCA?")
+    s=modem.splitResponse("+CSCA",resp[0])
+    print("SMS Service center:",s[0])
+
+
 def main():
 
     log=logging.getLogger('Modem_GPS_Service')
@@ -30,6 +39,7 @@ def main():
     modem.logModemStatus()
     if modem.SIM_Ready():
         # we have a SIM so look how it goaes
+        checkSMS(modem)
         res= modem.networkStatus()
 
         if not res :

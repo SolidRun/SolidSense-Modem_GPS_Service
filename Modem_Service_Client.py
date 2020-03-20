@@ -24,7 +24,11 @@ class Modem_Client():
 
     def modemCmd(self,cmd):
         req=ModemCmd(command=cmd)
-        resp=self._stub.modemCommand(req)
+        try:
+            resp=self._stub.modemCommand(req)
+        except grpc.RpcError as err:
+            print(err)
+            return None
         return resp
 
     def getGPSPosition(self):
@@ -57,7 +61,7 @@ def printStatus(rs):
 def main():
 
     gps=Modem_Client(sys.argv[1])
-    print("====GPS Server :",sys.argv[1]," Connected ============")
+    print("====GPS Server :",sys.argv[1])
     cmd=sys.argv[2]
     if len(sys.argv) > 3 :
         for arg in sys.argv[3:] :
@@ -67,6 +71,10 @@ def main():
                 break
     print("modem command:",cmd)
     resp=gps.modemCmd(cmd)
+    if resp == None:
+        print("Communication problem with modem_gps service")
+        return
+
     print("Receive frame=",resp.frameID," :",resp.response)
     if sys.argv[2]=='status' and resp.response == 'OK':
         rs=resp.status
