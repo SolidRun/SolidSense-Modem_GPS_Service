@@ -37,7 +37,12 @@ class Modem_Service():
 
     def performInit(self):
 
-        self._modem=QuectelModem(self._device)
+        if getparam('log_at') == True:
+            log_at=True
+        else:
+            log_at=False
+
+        self._modem=QuectelModem(self._device,log_at)
         # at that point we shall be OK ,there is a modem attached
         self._openFlag=True
         self._modem.logModemStatus()
@@ -47,6 +52,7 @@ class Modem_Service():
         # now check if we need and can send the PIN code and perform init
         init_done=False
         nb_attempt=0
+        send_select=False
         pin_set=False
         while nb_attempt < 3 :
             mdm_serv_log.debug("Modem setup attempt#"+str(nb_attempt))
@@ -78,7 +84,9 @@ class Modem_Service():
                         time.sleep(2.0)
                     elif self._modem.regStatus() == "NO REG":
                         # force new registration
-                        self._modem.selectOperator('AUTO')
+                        if not send_select:
+                            self._modem.selectOperator('AUTO')
+                            send_select=True # do it only once
                         time.sleep(2.0)
                     nb_attempt= nb_attempt+1
 
@@ -111,8 +119,20 @@ class Modem_Service():
             self.armTimer()
         return
 
+
+    def lockModem(self):
+        # lock to avoid mixed transactions
+        if self._statusLock.acquire(blocking=True,timeout=120.) :
+            return
+        # one thread is blocking => better to stop the service
+        mdm_serv_log.critical("Modem service thread deadlock => restart")
+        os._exit(2)
+
+    def unlockModem(self):
+        self._statusLock.release()
+
     def readStatus(self):
-        self._statusLock.acquire()
+        self.lockModem()
         mdm_serv_log.debug("Reading status begin")
         nb_retry=getparam('nb_retry')
         if nb_retry == None: nb_retry =5
@@ -126,11 +146,12 @@ class Modem_Service():
                 # better to attemp something else
                 mdm_serv_log.critical("Modem not registered after "+str(self._error_count - 1)+" attempt => RESET")
                 self._modem.resetCard()
-                time.sleep(20.)
+                self._modem.closeAtLog()
+                time.sleep(30.)
                 os._exit(2)  # systemd shall restart the service
         self.close()
         mdm_serv_log.debug("reading status ends")
-        self._statusLock.release()
+        self.unlockModem()
 
     @staticmethod
     def statusTimer(args):
@@ -186,7 +207,7 @@ class Modem_Service():
         if not self._openFlag :
             self.open()
         if cmd == 'status' or cmd == 'operator' :
-            self._statusLock.acquire()
+            self.lockModem()
             mdm_serv_log.debug("command status begins")
             self.open()
             showOp=False
@@ -210,7 +231,7 @@ class Modem_Service():
             resp_dict=self._modem.modemStatus(showOp)
             self.close()
             mdm_serv_log.debug("command status ends")
-            self._statusLock.release()
+            self.unlockModem()
             resp_msg="OK"
         elif cmd == "reset":
             self._modem.resetCard()

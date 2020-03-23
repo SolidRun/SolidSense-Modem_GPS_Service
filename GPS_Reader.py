@@ -136,9 +136,12 @@ class GPS_Reader():
         print(self._data)
 
 def main():
+    global gps_serv_log
     logging.basicConfig()
+    gps_serv_log=logging.getLogger('Modem_GPS_Service')
+    gps_serv_log.setLevel(logging.DEBUG)
     reader=GPS_Reader()
-    reader.traceNMEA()
+    # reader.traceNMEA()
     reader.readNMEAFrame()
     reader.dataPrint()
 
