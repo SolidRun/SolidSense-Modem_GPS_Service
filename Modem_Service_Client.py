@@ -52,7 +52,7 @@ def printStatus(rs):
     if rs.SIM_status ==  'READY':
         print("IMSI:",rs.IMSI)
         if rs.registered :
-            print("On:",rs.network_reg," PLMNID:",rs.PLMNID," Network:",rs.network," Radio:",rs.rat," Band:",rs.band," LAC:",rs.lac," RSSI:",rs.rssi,"dBm")
+            print("On:",rs.network_reg," PLMNID:",rs.PLMNID," Network:",rs.network," Radio:",rs.rat," Band:",rs.band," LAC:",rs.lac,"CI:",rs.ci, "RSSI:",rs.rssi,"dBm")
         else :
             print("Not registered - visible operators:\n",rs.operators)
 
@@ -75,13 +75,13 @@ def main():
         print("Communication problem with modem_gps service")
         return
 
-    print("Receive frame=",resp.frameID," :",resp.response)
+    # print("Receive frame=",resp.frameID," :",resp.response)
     if sys.argv[2]=='status' and resp.response == 'OK':
         rs=resp.status
         printStatus(rs)
         if rs.gps_on :
             resp=gps.getGPSPrecision()
-            print("Receive frame=",resp.frameID)
+            # print("Receive frame=",resp.frameID)
             if resp.fix :
                 print("GPS FIXED date:",resp.date, "time:",resp.timestamp)
                 resp=gps.getGPSVector()

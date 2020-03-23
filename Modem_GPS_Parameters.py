@@ -57,6 +57,8 @@ def default_param():
     out['trace']= "info"
     out['roaming']=True
     out['timer']=300.
+    out["nb_retry"]=5
+    out["log_at"]=False
 
     modem_gps_parameters=out
 

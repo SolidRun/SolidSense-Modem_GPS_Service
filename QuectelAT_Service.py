@@ -57,8 +57,15 @@ class QuectelModem():
     def close(self):
         self._tty.close()
         if self._logAT :
-            self._logfp.close()
+            self._logfp.flush()
 
+    def closeAtLog(self):
+        if self._logAT :
+            header= "*** End of session %s ****\n"% datetime.datetime.now().isoformat(' ')
+            self._logfp.write(header)
+            self._logfp.flush()
+            self._logfp.close()
+            self._logAT=False
     #
     # send AT command and return the responses
     #
@@ -224,12 +231,13 @@ class QuectelModem():
     #
     #   split a complex response in several fields
     #
-    def splitResponse(self,cmd,resp) :
+    def splitResponse(self,cmd,resp,raiseException=True) :
         st=resp.find(cmd)
         if st == -1 :
             modem_log.error("Modem sent unexpected response:"+cmd+" response:"+resp)
-            raise ModemException ("Wrong response:"+cmd+" : "+resp)
-            return
+            if raiseException :
+                raise ModemException ("Wrong response:"+cmd+" : "+resp)
+            return None
         st=len(cmd)+2 # one for colon + one for space
         toSplit=resp[st:]
         #print toSplit
@@ -259,7 +267,18 @@ class QuectelModem():
             return " "
         return resp[:cmd]
 
-
+    def checkAndSplitResponse(self,cmd,resp):
+        '''
+        check if the expected response is returned
+        and then split it for processing
+        '''
+        for r in resp:
+            param = self.splitResponse(cmd,r,False)
+            if param != None :
+                return param
+        # nothing found
+        modem_log.error("No AT response for:"+cmd)
+        return None
 
     def networkStatus(self,log=True):
 
@@ -276,10 +295,7 @@ class QuectelModem():
         '''
         resp=self.sendATcommand("+CREG?")
         # warning some spontaneous messages can come
-        vresp=None
-        for r in resp:
-            if self.checkResponse(r) == '+CREG' :
-                vresp=r
+        vresp=self.checkAndSplitResponse("+CREG",resp)
         if vresp == None :
             modem_log.error("No registration status returned (+CREG)")
             return False
@@ -288,13 +304,13 @@ class QuectelModem():
     def regStatus(self):
         return self._networkReg
 
-    def decodeRegistration(self,vresp,log):
+    def decodeRegistration(self,param,log):
         '''
         Decode the registration message
         Read all network attachment characteristics
         '''
 
-        param=self.splitResponse("+CREG",vresp)
+        # param=self.splitResponse("+CREG",vresp)
         # modem_log.info("Network registration status:"+str(param[1]))
         if param[1] == 1 :
             if log : modem_log.info ("registered on home operator")
@@ -346,27 +362,35 @@ class QuectelModem():
         #
 
         resp=self.sendATcommand("+QSPN")
-        param=self.splitResponse("+QSPN",resp[0])
-        self._networkName=param[0]
-        self._regPLMN=param[4]
+        param=self.checkAndSplitResponse("+QSPN",resp)
+        if param != None:
+            self._networkName=param[0]
+            self._regPLMN=param[4]
+        else:
+            self._networkName="Unknown"
+            self._regPLMN=0
+
         self._isRegistered = True
         #
         # Get quality indicators
         #
         # print("Decoding network info")
         resp=self.sendATcommand("+QNWINFO")
-        try:
-            self.decodeNetworkInfo(resp[0])
-        except ModemException :
+        param=self.checkAndSplitResponse("+QNWINFO",resp)
+        if param != None :
+            self.decodeNetworkInfo(param)
+        else:
+            modem_log.error("Error on network info")
             return True
+
         if log :
             logstr="Registered on {0}/{1} PLMID {2} LAC {3} CI {7} RAT {4} BAND {5} RSSI {6}".format(self._networkName,self._networkReg,self._regPLMN,self._lac,self._rat,self._band,self._rssi,self._ci)
             modem_log.info(logstr)
         return True
 
-    def decodeNetworkInfo(self,resp):
+    def decodeNetworkInfo(self,param):
 
-        param=self.splitResponse("+QNWINFO",resp)
+        #param=self.splitResponse("+QNWINFO",resp)
         self._rat=param[0]
         if len(param) >= 3 :
             self._band=param[2]
@@ -374,7 +398,10 @@ class QuectelModem():
             self._band="unknown"
 
         resp=self.sendATcommand("+CSQ")
-        param=self.splitResponse("+CSQ",resp[0])
+        param=self.checkAndSplitResponse("+CSQ",resp)
+        if param == None :
+            self._rssi=0
+            return
         #print("Quality indicator:",param)
         if param[0] <= 31 :
             self._rssi= -113 +(param[0]*2)
@@ -626,7 +653,11 @@ class QuectelModem():
     #
     def resetCard(self):
         modem_log.info ("RESETTING THE CARD")
-        self.sendATcommand("+CFUN=1,1",True)
+        modem_log.debug("Going to flight mode")
+        self.sendATcommand("+CFUN=0",raiseException=True)
+        time.sleep(1.0)
+        modem_log.debug("Restoring normal mode")
+        self.sendATcommand("+CFUN=1",raiseException=True)
         modem_log.info ("Allow 20-30 sec for the card to reboot")
         # time.sleep(20)
     #
