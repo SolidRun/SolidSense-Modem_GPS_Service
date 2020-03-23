@@ -12,12 +12,13 @@
 import logging
 import json
 
-local_log=logging.getLogger('Modem_GPS_Service')
+
 
 modem_gps_parameters=None
 
-def modem_gps_init_parameters():
+def modem_gps_init_parameters(local_log):
     global modem_gps_parameters
+    # local_log=logging.getLogger('Modem_GPS_Service')
     dir_h=getDataDir()
     fn=dir_h+'/parameters.json'
     try:
@@ -56,6 +57,8 @@ def default_param():
     out['trace']= "info"
     out['roaming']=True
     out['timer']=300.
+    out["nb_retry"]=5
+    out["log_at"]=False
 
     modem_gps_parameters=out
 

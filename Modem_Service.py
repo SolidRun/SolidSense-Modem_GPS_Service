@@ -11,18 +11,22 @@
 #-------------------------------------------------------------------------------
 
 import threading
+import os
 from QuectelAT_Service import *
 from Modem_GPS_Parameters import *
 
-mdm_serv_log=logging.getLogger('Modem_GPS_Service')
+mdm_serv_log=None
 
 class Modem_Service():
 
     def __init__(self):
+        global mdm_serv_log
+        mdm_serv_log=logging.getLogger('Modem_GPS_Service')
         self._openFlag=False
         self._modem=None
         self._device=getparam('modem_ctrl')
         self._statusLock= threading.Lock()
+        self._error_count=0
 
     def checkCard(self):
         try:
@@ -33,7 +37,12 @@ class Modem_Service():
 
     def performInit(self):
 
-        self._modem=QuectelModem(self._device)
+        if getparam('log_at') == True:
+            log_at=True
+        else:
+            log_at=False
+
+        self._modem=QuectelModem(self._device,log_at)
         # at that point we shall be OK ,there is a modem attached
         self._openFlag=True
         self._modem.logModemStatus()
@@ -43,6 +52,7 @@ class Modem_Service():
         # now check if we need and can send the PIN code and perform init
         init_done=False
         nb_attempt=0
+        send_select=False
         pin_set=False
         while nb_attempt < 3 :
             mdm_serv_log.debug("Modem setup attempt#"+str(nb_attempt))
@@ -62,12 +72,24 @@ class Modem_Service():
                     # file or SIM has been change => rebuild and save
                     self._modem.saveOperatorNames(buildFileName('operatorsDB'))
                 if self._modem.networkStatus():
-                    self._modem.logNetworkStatus()
-
+                    # self._modem.logNetworkStatus()
+                    # modem is attached (registered) so nothing else to do
                     break
                 else:
-                    time.sleep(2.0)
+                    # SIM is ready but we have a registration problem
+                    if self._modem.regStatus() == "DENIED" :
+                        # nothing we can do here
+                        break
+                    elif self._modem.regStatus() == "IN PROGRES" :
+                        time.sleep(2.0)
+                    elif self._modem.regStatus() == "NO REG":
+                        # force new registration
+                        if not send_select:
+                            self._modem.selectOperator('AUTO')
+                            send_select=True # do it only once
+                        time.sleep(2.0)
                     nb_attempt= nb_attempt+1
+
             elif self._modem.SIM_Present() and not pin_set:
                 if self._modem.SIM_Status() == "SIM PIN" :
                     #  ok we need a PIN code
@@ -97,14 +119,39 @@ class Modem_Service():
             self.armTimer()
         return
 
+
+    def lockModem(self):
+        # lock to avoid mixed transactions
+        if self._statusLock.acquire(blocking=True,timeout=120.) :
+            return
+        # one thread is blocking => better to stop the service
+        mdm_serv_log.critical("Modem service thread deadlock => restart")
+        os._exit(2)
+
+    def unlockModem(self):
+        self._statusLock.release()
+
     def readStatus(self):
-        self._statusLock.acquire()
+        self.lockModem()
         mdm_serv_log.debug("Reading status begin")
+        nb_retry=getparam('nb_retry')
+        if nb_retry == None: nb_retry =5
         self.open()
-        self._modem.networkInfo()
+        if self._modem.networkStatus() :
+            self._error_count = 0
+        else:
+            self._error_count += 1
+            if self._error_count > nb_retry:
+                # here we have 10 times in a row a registration error
+                # better to attemp something else
+                mdm_serv_log.critical("Modem not registered after "+str(self._error_count - 1)+" attempt => RESET")
+                self._modem.resetCard()
+                self._modem.closeAtLog()
+                time.sleep(30.)
+                os._exit(2)  # systemd shall restart the service
         self.close()
         mdm_serv_log.debug("reading status ends")
-        self._statusLock.release()
+        self.unlockModem()
 
     @staticmethod
     def statusTimer(args):
@@ -154,18 +201,37 @@ class Modem_Service():
     def controlIf(self):
         return self._device
 
-    def executeCommand(self,cmd):
+    def executeCommand(self,cmd_line):
+        cmdt=cmd_line.split(',')
+        cmd=cmdt[0]
         if not self._openFlag :
             self.open()
-        if cmd == 'status' :
-            self._statusLock.acquire()
+        if cmd == 'status' or cmd == 'operator' :
+            self.lockModem()
             mdm_serv_log.debug("command status begins")
             self.open()
-            self._modem.networkInfo()
-            resp_dict=self._modem.modemStatus()
+            showOp=False
+            if self._modem.networkStatus() :
+
+                if cmd == 'operator':
+                    if len(cmdt) > 1 :
+                        # here we try to set the operator
+                        if len(cmdt) > 2 :
+                            rat=cmdt[2]
+                        else:
+                            rat=None
+                        if cmdt[1].isdecimal():
+                            f='numeric'
+                        else:
+                            f='long'
+
+                        self._modem.selectOperator(cmdt[1],name_format=f,rat=rat)
+                    else:
+                        showOp=True
+            resp_dict=self._modem.modemStatus(showOp)
             self.close()
             mdm_serv_log.debug("command status ends")
-            self._statusLock.release()
+            self.unlockModem()
             resp_msg="OK"
         elif cmd == "reset":
             self._modem.resetCard()

@@ -26,7 +26,8 @@ from GPS_Reader import *
 from Modem_GPS_Parameters import *
 from Modem_Service import *
 
-gps_log=logging.getLogger('Modem_GPS_Service')
+gps_log=None
+modem_gps_version="1.1"
 
 grpc_server=None
 exit_flag= -1
@@ -349,13 +350,25 @@ class GPS_Service_Synchro() :
 def main():
     #
     global grpc_server
+    global gps_log
     #
-    logging.basicConfig(level=logging.DEBUG,format='%(asctime)s - %(message)s',stream=sys.stdout)
+
+    '''
+    f_log= logging.Formatter("%(asctime)s | [%(levelname)s] %(name)s@%(filename)s:%(lineno)d:%(message)s")
+    l_handler= logging.StreamHandler()
+    l_handler.setFormatter(f_log)
+
+    gps_log.addHandler(l_handler)
+    gps_log.setLevel(logging.DEBUG)
+    '''
+    logging.basicConfig(level=logging.DEBUG,format="%(asctime)s [%(levelname)s]:%(message)s",stream=sys.stdout)
+    gps_log=logging.getLogger('Modem_GPS_Service')
     #
-    modem_gps_init_parameters()
+    modem_gps_init_parameters(gps_log)
     # adjust log level
     gps_log.setLevel(getLogLevel())
     # print("Logging level:",gps_log.getEffectiveLevel())
+    gps_log.info("Start Modem GPS Micro service version"+modem_gps_version)
     #
     #  check the status of the modem and perform init sequence
     #
