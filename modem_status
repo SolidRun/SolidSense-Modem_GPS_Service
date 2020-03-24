@@ -23,11 +23,13 @@ usage () {
 reset () {
 	echo " Resetting the modem, all communication will stop"
 	systemctl stop modem_gps
-	python3 $MDM_DIR/Factory_Reset.py OK
+	python3 $MDM_DIR/Factory_Reset.py
 	echo "Wait 30 seconds before performing further actions. Power cycle recommended"
 	
 }
 
+factory_reset() {
+}
 check () {
 	if [ -e /dev/ttyUSB3 ] ; then
 		echo "Modem control file present"
