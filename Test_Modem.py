@@ -29,13 +29,23 @@ def main():
     log=logging.getLogger('Modem_GPS_Service')
     log.addHandler(logging.StreamHandler())
     log.setLevel(logging.DEBUG)
-    modem=QuectelModem('/dev/ttyUSB2',True)
+    try:
+        modem=QuectelModem('/dev/ttyUSB2',True)
+    except Exception as err:
+        log.error(str(err))
+        return
+
     log.info("SIM Status:"+modem.SIM_Status())
+    if modem.checkSIM() == "NO SIM":
+        log.error("No SIM card inserted")
+        return
+
     if modem.SIM_Status() == "SIM PIN":
         modem.setpin('0000')
         time.sleep(2.0)
         modem.checkSIM()
-
+    modem.clearFPLMN()
+    modem.allowRoaming()
     modem.logModemStatus()
     if modem.SIM_Ready():
         # we have a SIM so look how it goaes
