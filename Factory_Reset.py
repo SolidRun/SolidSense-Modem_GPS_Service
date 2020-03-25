@@ -26,9 +26,13 @@ def main():
         if sys.argv[1] == 'FULL' :
             log.info("Resetting paramaters to default")
             modem.factoryDefault()
-    else:
-        log.info("Performing a soft reset")
-        modem.resetCard()
+            modem.closeAtLog()
+            modem.close()
+            return
+
+    log.info("Performing a soft reset")
+    modem.resetCard()
+    modem.closeAtLog()
     modem.close()
     log.info("Perform a modem test after 30 sec: modem_status -t")
 
