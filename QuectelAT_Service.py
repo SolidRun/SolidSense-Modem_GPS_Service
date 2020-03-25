@@ -225,6 +225,7 @@ class QuectelModem():
         rs=self.splitResponse("+QCFG",r[0])
         # print("roaming flag:",rs[1])
         if rs[1] != 2 :
+            modem_log.debug("Allowing roaming while not allowed")
             r=self.sendATcommand("+QCFG=\"roamservice\",2,1")
 
     def clearFPLMN(self):
@@ -467,13 +468,16 @@ class QuectelModem():
 
 
     def readOperatorNames(self,fileName):
+        if self._operatorNames != None :
+            # already in memory
+            return True
         if os.path.exists(fileName) :
             # print ("reading",fileName)
             try:
                 fp=open(fileName,"r")
             except IOError as err:
                 modem_log.info ("Reading operators database:"+fileName+" :"+str(err))
-                return
+                return False
             try:
                 in_str= json.load(fp)
             except json.JSONDecodeError :
@@ -696,9 +700,7 @@ class QuectelModem():
 
     def getGpsStatus(self):
         status={}
-        resp=self.sendATcommand("+QGPS?")
-        param=self.splitResponse("+QGPS",resp[0])
-        if param[0] == 0 :
+        if not self.gpsStatus() :
             status['state'] ='off'
             return  status
         #
@@ -740,7 +742,9 @@ class QuectelModem():
 
     def gpsStatus(self):
         resp=self.sendATcommand("+QGPS?")
-        param=self.splitResponse("+QGPS",resp[0])
+        param=self.checkAndSplitResponse("+QGPS",resp)
+        if param == None :
+            return False
         if param[0] == 0 :
             return False
         else:
