@@ -35,6 +35,10 @@ class Modem_Service():
             return False
         return True
 
+    def modemReset(self):
+        self._modem.resetCard()
+        time.sleep(30.)
+
     def performInit(self):
 
         if getparam('log_at') == True:
@@ -48,7 +52,7 @@ class Modem_Service():
         self._modem.logModemStatus()
         if not self._modem.SIM_Present() :
             # no SIM, no need to continue
-            return
+            return False
         # now check if we need and can send the PIN code and perform init
         init_done=False
         nb_attempt=0
@@ -59,6 +63,7 @@ class Modem_Service():
             if self._modem.SIM_Ready() :
                 mdm_serv_log.debug("Modem setup SIM status:"+self._modem.SIM_Status())
                 # perform SIM init sequence
+
                 if not init_done :
                     # clearing forbidden PLMN list
                     self._modem.clearFPLMN()
@@ -67,6 +72,7 @@ class Modem_Service():
                         # print("allowing roaming")
                         self._modem.allowRoaming()
                     init_done = True
+
                 # the SIM is ready so look in operatorsDB
                 if not self._modem.readOperatorNames(buildFileName('operatorsDB')) :
                     # file or SIM has been change => rebuild and save
@@ -84,10 +90,12 @@ class Modem_Service():
                         time.sleep(2.0)
                     elif self._modem.regStatus() == "NO REG":
                         # force new registration
-                        if not send_select:
-                            self._modem.selectOperator('AUTO')
-                            send_select=True # do it only once
+
+                        if nb_attempt == 2 :
+                            return True
                         time.sleep(2.0)
+                        # return True
+
                     nb_attempt= nb_attempt+1
 
             elif self._modem.SIM_Present() and not pin_set:
@@ -117,7 +125,7 @@ class Modem_Service():
         if self._modem.SIM_Ready():
             mdm_serv_log.debug("Arming timer for periodic reading")
             self.armTimer()
-        return
+        return False
 
 
     def lockModem(self):
@@ -202,6 +210,7 @@ class Modem_Service():
         return self._device
 
     def executeCommand(self,cmd_line):
+        # mdm_serv_log.debug("Modem command:"+cmd_line)
         cmdt=cmd_line.split(',')
         cmd=cmdt[0]
         if not self._openFlag :
@@ -228,6 +237,11 @@ class Modem_Service():
                         self._modem.selectOperator(cmdt[1],name_format=f,rat=rat)
                     else:
                         showOp=True
+            else:
+                if cmd == 'operator':
+                    showOp = True # in all case we can show operators
+
+            # print("#################",showOp)
             resp_dict=self._modem.modemStatus(showOp)
             self.close()
             mdm_serv_log.debug("command status ends")
