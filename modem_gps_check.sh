@@ -5,7 +5,7 @@ SLEEP=0.1
 MAX_COUNT=200
 
 while (/bin/true) ; do
-	val=$(journalctl -xab -u modem_gps.service -p crit | grep MODEM_OK)
+	val=$(journalctl -xab -u modem_gps.service | grep MODEM_OK)
 	if [ -n "${val}" ]; then
 		break
 	else
