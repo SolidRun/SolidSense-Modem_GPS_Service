@@ -723,7 +723,7 @@ class QuectelModem():
         #
         # modem_log.debug("Reading NMEA port parameters")
         resp=self.sendATcommand("+QGPSCFG=\"outport\"")
-        param=self.splitResponse("+QGPSCFG",resp[0])
+        param=self.checkAndSplitResponse("+QGPSCFG",resp)
         status["NMEA_port1"]=param[0]
         status['NMEA_port2']=param[1]
         # read values
@@ -742,7 +742,7 @@ class QuectelModem():
             return status
         # now we shall have a valid GPS signal
         status['fix'] = True
-        param=self.splitResponse("+QGPSLOC",resp[0])
+        param=self.checkAndSplitResponse("+QGPSLOC",resp)
         status["Time_UTC"]=param[0]
         status["Latitude"]=param[1]
         status['Longitude']=param[2]
@@ -762,6 +762,6 @@ class QuectelModem():
 
     def gpsPort(self):
         resp=self.sendATcommand("+QGPSCFG=\"outport\"")
-        param=self.splitResponse("+QGPSCFG",resp[0])
+        param=self.checkAndSplitResponse("+QGPSCFG",resp)
         return param[1]
 
