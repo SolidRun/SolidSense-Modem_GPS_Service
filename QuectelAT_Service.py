@@ -741,13 +741,17 @@ class QuectelModem():
                 status ['fix'] = err
             return status
         # now we shall have a valid GPS signal
-        status['fix'] = True
+
         param=self.checkAndSplitResponse("+QGPSLOC",resp)
-        status["Time_UTC"]=param[0]
-        status["Latitude"]=param[1]
-        status['Longitude']=param[2]
-        status["nbsat" ]=param[10]
-        status["SOG_KMH"]=param[8]
+        if param == None :
+            status['fix'] = False
+        else:
+            status['fix'] = True
+            status["Time_UTC"]=param[0]
+            status["Latitude"]=param[1]
+            status['Longitude']=param[2]
+            status["nbsat" ]=param[10]
+            status["SOG_KMH"]=param[8]
         return status
 
     def gpsStatus(self):
