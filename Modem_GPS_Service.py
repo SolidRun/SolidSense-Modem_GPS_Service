@@ -27,7 +27,7 @@ from Modem_GPS_Parameters import *
 from Modem_Service import *
 
 gps_log=None
-modem_gps_version="1.2"
+modem_gps_version="1.2.1"
 
 grpc_server=None
 exit_flag= -1

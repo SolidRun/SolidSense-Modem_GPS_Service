@@ -24,6 +24,18 @@ def checkSMS(modem):
     print("SMS Service center:",s[0])
 
 
+def init(modem):
+    modem.resetCard()
+    time.sleep(20.)
+    modem.clearFPLMN()
+    modem.allowRoaming()
+    modem.logModemStatus()
+
+def rescan(modem):
+    print("Resetting network scan mode")
+    modem.sendATcommand('+QCFG=”nwscanmode”,0,1')
+    modem.selectOperator('AUTO')
+
 def main():
 
     log=logging.getLogger('Modem_GPS_Service')
@@ -40,13 +52,34 @@ def main():
         log.error("No SIM card inserted")
         return
 
+    option="None"
+    if len(sys.argv) > 1 :
+        option=sys.argv[1]
+
     if modem.SIM_Status() == "SIM PIN":
         modem.setpin('0000')
         time.sleep(2.0)
         modem.checkSIM()
-    modem.clearFPLMN()
-    modem.allowRoaming()
+
     modem.logModemStatus()
+
+    if option == "init" :
+        init(modem)
+    elif option == "cmd" :
+        if len(sys.argv) >2 :
+            print("sending:",sys.argv[2])
+            resp=modem.sendATcommand(sys.argv[2],True)
+            for r in resp:
+                print(r)
+        else:
+            print("Missing command argument")
+    elif option == "scan" :
+        if modem.SIM_Ready():
+            rescan(modem)
+    else:
+        modem.allowRoaming()
+
+
     if modem.SIM_Ready():
         # we have a SIM so look how it goaes
         checkSMS(modem)
@@ -69,12 +102,6 @@ def main():
                 print(modem.visibleOperators())
                 # try to Register from scratch
                 # clear forbidden PLMN and allow roaming
-                modem.clearFPLMN()
-                modem.allowRoaming()
-                modem.selectOperator('AUTO')
-                time.sleep(10.0)
-                res= modem.networkStatus()
-                modem.logNetworkStatus()
 
     modem.close()
 
