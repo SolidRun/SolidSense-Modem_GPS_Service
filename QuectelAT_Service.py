@@ -182,6 +182,9 @@ class QuectelModem():
             if sim_lock[0] == "READY":
                 r=self.sendATcommand("+CIMI")
                 self._IMSI=r[0]
+                r=self.sendATcommand("+QCCID")
+                r=self.splitResponse("+QCCID",r[0])
+                self._ICCID=r[0]
                 # allow full notifications on registration change
                 self.sendATcommand("+CREG=2")
         else:
@@ -209,6 +212,12 @@ class QuectelModem():
             return self._IMSI
         else:
             return None
+    def ICCID(self):
+        if self._SIM and self._SIM_STATUS=="READY":
+            return self._ICCID
+        else:
+            return None
+
     def setpin(self,pin) :
         cmd="+CPIN="+pin
         try:
@@ -629,7 +638,7 @@ class QuectelModem():
         modem_log.info ("IMEI: %s -%d digits (incl CRC)" % (self._IMEI,len(self._IMEI)) )
         if self._SIM :
             modem_log.info ("SIM STATUS:"+self._SIM_STATUS)
-            if self._SIM_STATUS== "READY" : modem_log.info ("SIM:"+self._IMSI)
+            if self._SIM_STATUS== "READY" : modem_log.info ("SIM IMSI:"+self._IMSI+" ICC-ID:"+str(self.ICCID()))
         else :
             modem_log.info ("NO SIM Inserted"  )
 
@@ -684,6 +693,7 @@ class QuectelModem():
         time.sleep(1.0)
         modem_log.info("RESETTING THE MODEM")
         self.sendATcommand("+CFUN=1,1")
+        self.close()
         modem_log.info ("Allow 20-30 sec for the modem to restart")
     #
     # turn GPS on with output on ttyUSB1 as NMEA sentence

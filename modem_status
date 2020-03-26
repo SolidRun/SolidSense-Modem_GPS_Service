@@ -52,7 +52,7 @@ check () {
 test_modem () {
 	echo "testing the modem - service will stop"
 	systemctl stop modem_gps
-	python3 $MDM_DIR/Test_Modem.py
+	python3 $MDM_DIR/Test_Modem.py init
 	echo "to restart the service if test is ok: systemctl start modem_gps"
 }
 			

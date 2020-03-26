@@ -91,8 +91,8 @@ class Modem_Service():
                     elif self._modem.regStatus() == "NO REG":
                         # force new registration
 
-                        if nb_attempt == 2 :
-                            return True
+                        #if nb_attempt == 2 :
+                        #    return True
                         time.sleep(2.0)
                         # return True
 
@@ -154,10 +154,20 @@ class Modem_Service():
                 # better to attemp something else
                 mdm_serv_log.critical("Modem not registered after "+str(self._error_count - 1)+" attempt => RESET")
                 self._modem.resetCard()
+                # self._modem.factoryDefault()
                 self._modem.closeAtLog()
                 time.sleep(30.)
                 os._exit(2)  # systemd shall restart the service
-        self.close()
+        # gps status
+        if self._modem.gpsStatus():
+            gps=self._modem.getGpsStatus()
+            if gps['fix'] :
+                logstr="GPS Fixed Time {} Lat {} Long {} Speed {}".format(
+                    gps['Time_UTC'],gps['Latitude'],gps['Longitude'],gps['SOG_KMH'])
+            else:
+                logstr="GPS NOT Fixed"
+            mdm_serv_log.info(logstr)
+            self.close()
         mdm_serv_log.debug("reading status ends")
         self.unlockModem()
 
