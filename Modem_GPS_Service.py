@@ -27,7 +27,7 @@ from Modem_GPS_Parameters import *
 from Modem_Service import *
 
 gps_log=None
-modem_gps_version="1.1"
+modem_gps_version="1.2.1"
 
 grpc_server=None
 exit_flag= -1
@@ -345,7 +345,9 @@ class GPS_Service_Synchro() :
         return self._stopThread
 
 
-
+def OkModem():
+    global gps_log
+    gps_log.critical("MODEM_OK")
 
 def main():
     #
@@ -368,7 +370,7 @@ def main():
     # adjust log level
     gps_log.setLevel(getLogLevel())
     # print("Logging level:",gps_log.getEffectiveLevel())
-    gps_log.info("Start Modem GPS Micro service version"+modem_gps_version)
+    gps_log.info("Start Modem GPS Micro service version "+modem_gps_version)
     #
     #  check the status of the modem and perform init sequence
     #
@@ -379,14 +381,30 @@ def main():
     #
     if not ms.checkCard() :
         gps_log.critical("MODEM CARD NOT PRESENT OR NOT READY:"+ms.controlIf())
+        OkModem()
         exit(2)
     #  now initialise the modem
+    nb_retry = 0
+    init_final=True
     try:
-        ms.performInit()
+        while nb_retry < 4 :
+            gps_log.info("Starting Modem initialisation sequence attempt:"+str(nb_retry))
+            if ms.performInit() :
+                nb_retry += 1
+            else:
+                init_final=False
+                break
+        if init_final :
+            gps_log.critical("MODEM UNABLE TO INITIALIZE => RESET")
+            ms.modemReset()
+            OkModem()
+            exit(2)
     except :
-        gps_log.critical("ERROR DURING MODEM INITIALIZATION => STOP")
+        gps_log.critical("FATAL ERROR DURING MODEM INITIALIZATION => STOP")
+        OkModem()
         exit(2)
 
+    OkModem()
     # check if we have someting else to do
     if getparam('start_gps_service') == False:
         # check if we need to start the GPS anyway

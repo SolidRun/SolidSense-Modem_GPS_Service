@@ -15,6 +15,7 @@ usage () {
 	echo "    -n|--network                  :select an network"
 	echo "    -r|--rat                      :select a RAT (GSM/UTRAN/LTE)"
 	echo "	  -R|--reset					:reset the modem (as sudo)"
+	echo "	  -F|--factory_reset			:reset the modem to factory default(as sudo)"
 	echo "	  -c|--check					:check modem presence (as sudo)"
 	echo "	  no arguments					:print the modem status"
 	exit 1
@@ -23,15 +24,23 @@ usage () {
 reset () {
 	echo " Resetting the modem, all communication will stop"
 	systemctl stop modem_gps
-	python3 $MDM_DIR/Factory_Reset.py OK
+	python3 $MDM_DIR/Factory_Reset.py
 	echo "Wait 30 seconds before performing further actions. Power cycle recommended"
 	
 }
 
+factory_reset() {
+	echo " Resetting the modem to factory default, all communication will stop"
+	systemctl stop modem_gps
+	python3 $MDM_DIR/Factory_Reset.py FULL
+	echo "Wait 30 seconds before performing further actions. Power cycle recommended"
+}
+
 check () {
-	if [ -e /dev/ttyUSB3 ] ; then
+	if [ -e /dev/ttyUSB2 ] ; then
 		echo "Modem control file present"
-		python3 $MDM_DIR/Factory_Reset.py
+		systemctl stop modem_gps
+		python3 $MDM_DIR/Test_Modem.py
 		return 0
 	else
 		echo "No Modem control file detected"
@@ -43,12 +52,12 @@ check () {
 test_modem () {
 	echo "testing the modem - service will stop"
 	systemctl stop modem_gps
-	python3 $MDM_DIR/Test_Modem.py
+	python3 $MDM_DIR/Test_Modem.py init
 	echo "to restart the service if test is ok: systemctl start modem_gps"
 }
 			
 
-options=$(getopt -l "help,list,network:,rat:,reset,check,test" -o "hln:r:Rct" -- "${@}")
+options=$(getopt -l "help,list,network:,rat:,reset,factory_reset,check,test" -o "hln:r:RFct" -- "${@}")
 eval set -- "${options}"
 
 COMMAND="status"
@@ -87,6 +96,11 @@ do
 		-R|--reset )
 			shift
 			reset
+			exit
+			;;
+		-F|--factory_reset )
+			shift
+			factory_reset
 			exit
 			;;
 		\? )

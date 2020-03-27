@@ -66,6 +66,12 @@ class QuectelModem():
             self._logfp.flush()
             self._logfp.close()
             self._logAT=False
+
+    def logATCommand(self,cmd):
+        if self._logAT :
+            buf= datetime.datetime.now().strftime("%H:%M:%S.%f >")
+            buf += cmd
+            self._logfp.write(buf)
     #
     # send AT command and return the responses
     #
@@ -76,7 +82,7 @@ class QuectelModem():
         buf= buf +'\r'
         # print buf
         if self._logAT :
-            self._logfp.write(buf)
+            self.logATCommand(buf)
 
         try:
             self._tty.write(buf.encode())
@@ -142,10 +148,13 @@ class QuectelModem():
         r=self.sendATcommand("+GSN") # return IMEI
         self._IMEI=r[0]
         #check IMEI-SVN mode
+        '''
+        removing SVN management as part of issue #450
         r=self.sendATcommand("+EGMR=0,9")
         # print r
         svn=self.splitResponse("+EGMR",r[0])
         self._svn=svn[0]
+        '''
         self.checkSIM()
 
 
@@ -173,6 +182,9 @@ class QuectelModem():
             if sim_lock[0] == "READY":
                 r=self.sendATcommand("+CIMI")
                 self._IMSI=r[0]
+                r=self.sendATcommand("+QCCID")
+                r=self.splitResponse("+QCCID",r[0])
+                self._ICCID=r[0]
                 # allow full notifications on registration change
                 self.sendATcommand("+CREG=2")
         else:
@@ -200,6 +212,12 @@ class QuectelModem():
             return self._IMSI
         else:
             return None
+    def ICCID(self):
+        if self._SIM and self._SIM_STATUS=="READY":
+            return self._ICCID
+        else:
+            return None
+
     def setpin(self,pin) :
         cmd="+CPIN="+pin
         try:
@@ -216,6 +234,7 @@ class QuectelModem():
         rs=self.splitResponse("+QCFG",r[0])
         # print("roaming flag:",rs[1])
         if rs[1] != 2 :
+            modem_log.debug("Allowing roaming while not allowed")
             r=self.sendATcommand("+QCFG=\"roamservice\",2,1")
 
     def clearFPLMN(self):
@@ -312,6 +331,10 @@ class QuectelModem():
 
         # param=self.splitResponse("+CREG",vresp)
         # modem_log.info("Network registration status:"+str(param[1]))
+        # in some case param is only a single value
+        if len(param) < 2 :
+            return False
+
         if param[1] == 1 :
             if log : modem_log.info ("registered on home operator")
             self._networkReg="HOME"
@@ -332,7 +355,7 @@ class QuectelModem():
                 modem_log.info("Registration in progress. looking for a network...")
                 self._networkReg="IN PROGRESS"
             else:
-                modem_log.error("No registration in progress => back to AUTO search...")
+                modem_log.error("No registration in progress...")
                 self._networkReg="NO REG"
             return False
 
@@ -454,13 +477,16 @@ class QuectelModem():
 
 
     def readOperatorNames(self,fileName):
+        if self._operatorNames != None :
+            # already in memory
+            return True
         if os.path.exists(fileName) :
             # print ("reading",fileName)
             try:
                 fp=open(fileName,"r")
             except IOError as err:
                 modem_log.info ("Reading operators database:"+fileName+" :"+str(err))
-                return
+                return False
             try:
                 in_str= json.load(fp)
             except json.JSONDecodeError :
@@ -608,11 +634,11 @@ class QuectelModem():
 
     def logModemStatus(self,output=sys.stdout):
         modem_log.info ("Quectel modem "+self._model+self._rev)
-
-        modem_log.info ("IMEI: %s -%d digits (incl CRC) SVN %02d" % (self._IMEI,len(self._IMEI),self._svn) )
+        # removing SVN display
+        modem_log.info ("IMEI: %s -%d digits (incl CRC)" % (self._IMEI,len(self._IMEI)) )
         if self._SIM :
             modem_log.info ("SIM STATUS:"+self._SIM_STATUS)
-            if self._SIM_STATUS== "READY" : modem_log.info ("SIM:"+self._IMSI)
+            if self._SIM_STATUS== "READY" : modem_log.info ("SIM IMSI:"+self._IMSI+" ICC-ID:"+str(self.ICCID()))
         else :
             modem_log.info ("NO SIM Inserted"  )
 
@@ -652,14 +678,23 @@ class QuectelModem():
     # perform a modem reset
     #
     def resetCard(self):
-        modem_log.info ("RESETTING THE CARD")
+        modem_log.info ("TURNING RADIO OFF AND ON")
         modem_log.debug("Going to flight mode")
         self.sendATcommand("+CFUN=0",raiseException=True)
         time.sleep(1.0)
         modem_log.debug("Restoring normal mode")
         self.sendATcommand("+CFUN=1",raiseException=True)
-        modem_log.info ("Allow 20-30 sec for the card to reboot")
+        modem_log.info ("Allow 20-30 sec for the modem to restart")
         # time.sleep(20)
+
+    def factoryDefault(self):
+        modem_log.info("RESTORING FACTORY DEFAULT")
+        self.sendATcommand("+QPRTPARA=3")
+        time.sleep(1.0)
+        modem_log.info("RESETTING THE MODEM")
+        self.sendATcommand("+CFUN=1,1")
+        self.close()
+        modem_log.info ("Allow 20-30 sec for the modem to restart")
     #
     # turn GPS on with output on ttyUSB1 as NMEA sentence
     #
@@ -675,9 +710,7 @@ class QuectelModem():
 
     def getGpsStatus(self):
         status={}
-        resp=self.sendATcommand("+QGPS?")
-        param=self.splitResponse("+QGPS",resp[0])
-        if param[0] == 0 :
+        if not self.gpsStatus() :
             status['state'] ='off'
             return  status
         #
@@ -690,7 +723,7 @@ class QuectelModem():
         #
         # modem_log.debug("Reading NMEA port parameters")
         resp=self.sendATcommand("+QGPSCFG=\"outport\"")
-        param=self.splitResponse("+QGPSCFG",resp[0])
+        param=self.checkAndSplitResponse("+QGPSCFG",resp)
         status["NMEA_port1"]=param[0]
         status['NMEA_port2']=param[1]
         # read values
@@ -708,18 +741,24 @@ class QuectelModem():
                 status ['fix'] = err
             return status
         # now we shall have a valid GPS signal
-        status['fix'] = True
-        param=self.splitResponse("+QGPSLOC",resp[0])
-        status["Time_UTC"]=param[0]
-        status["Latitude"]=param[1]
-        status['Longitude']=param[2]
-        status["nbsat" ]=param[10]
-        status["SOG_KMH"]=param[8]
+
+        param=self.checkAndSplitResponse("+QGPSLOC",resp)
+        if param == None :
+            status['fix'] = False
+        else:
+            status['fix'] = True
+            status["Time_UTC"]=param[0]
+            status["Latitude"]=param[1]
+            status['Longitude']=param[2]
+            status["nbsat" ]=param[10]
+            status["SOG_KMH"]=param[8]
         return status
 
     def gpsStatus(self):
         resp=self.sendATcommand("+QGPS?")
-        param=self.splitResponse("+QGPS",resp[0])
+        param=self.checkAndSplitResponse("+QGPS",resp)
+        if param == None :
+            return False
         if param[0] == 0 :
             return False
         else:
@@ -727,6 +766,6 @@ class QuectelModem():
 
     def gpsPort(self):
         resp=self.sendATcommand("+QGPSCFG=\"outport\"")
-        param=self.splitResponse("+QGPSCFG",resp[0])
+        param=self.checkAndSplitResponse("+QGPSCFG",resp)
         return param[1]
 

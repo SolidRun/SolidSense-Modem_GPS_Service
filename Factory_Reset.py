@@ -25,21 +25,16 @@ def main():
     if len(sys.argv) > 1:
         if sys.argv[1] == 'FULL' :
             log.info("Resetting paramaters to default")
-            modem.sendATcommand("&F0",True)
-        log.info("Resetting the card")
-        modem.resetCard()
-    else:
-        if modem.SIM_Ready():
-            # clear forbidden PLMN and allow roaming
-            modem.clearFPLMN()
-            modem.allowRoaming()
-            modem.selectOperator('AUTO')
-            res= modem.networkStatus()
-            modem.logNetworkStatus()
-            if not res :
-                print(modem.visibleOperators())
+            modem.factoryDefault()
+            modem.closeAtLog()
+            modem.close()
+            return
 
+    log.info("Performing a soft reset")
+    modem.resetCard()
+    modem.closeAtLog()
     modem.close()
+    log.info("Perform a modem test after 30 sec: modem_status -t")
 
 
 if __name__ == '__main__':
