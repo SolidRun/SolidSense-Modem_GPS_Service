@@ -55,6 +55,7 @@ message ModemStatus {
 	bool gps_on=3;
 	string SIM_status = 4;
 	string IMSI=5;
+	string ICCID=17;
 	bool registered=6;
 	string network_reg=7;
 	uint32 PLMNID=8;
