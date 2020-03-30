@@ -50,7 +50,7 @@ class Modem_Client():
 def printStatus(rs):
     print("model:",rs.model,"IMEI:",rs.IMEI,"GPS ON:",rs.gps_on," SIM:",rs.SIM_status)
     if rs.SIM_status ==  'READY':
-        print("IMSI:",rs.IMSI)
+        print("IMSI:",rs.IMSI,"ICCID:",rs.ICCID)
         if rs.registered :
             print("On:",rs.network_reg," PLMNID:",rs.PLMNID," Network:",rs.network," Radio:",rs.rat," Band:",rs.band," LAC:",rs.lac,"CI:",rs.ci, "RSSI:",rs.rssi,"dBm")
         else :

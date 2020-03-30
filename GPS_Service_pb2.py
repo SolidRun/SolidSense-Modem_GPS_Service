@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x11GPS_Service.proto\"e\n\x0cGPS_Position\x12\x0b\n\x03\x66ix\x18\x01 \x01(\x08\x12\x11\n\ttimestamp\x18\x02 \x01(\t\x12\x10\n\x08latitude\x18\x03 \x01(\x02\x12\x11\n\tlongitude\x18\x04 \x01(\x02\x12\x10\n\x08\x61ltitude\x18\x05 \x01(\x02\"k\n\nGPS_Vector\x12\x0b\n\x03\x66ix\x18\x01 \x01(\x08\x12\x11\n\ttimestamp\x18\x02 \x01(\t\x12\x10\n\x08latitude\x18\x03 \x01(\x02\x12\x11\n\tlongitude\x18\x04 \x01(\x02\x12\x0b\n\x03\x43OG\x18\x05 \x01(\x02\x12\x0b\n\x03SOG\x18\x06 \x01(\x02\"|\n\rGPS_Precision\x12\x0f\n\x07\x66rameID\x18\n \x01(\r\x12\x0b\n\x03\x66ix\x18\x01 \x01(\x08\x12\r\n\x05nbsat\x18\x02 \x01(\r\x12\x11\n\ttimestamp\x18\x03 \x01(\t\x12\x0c\n\x04\x64\x61te\x18\x04 \x01(\t\x12\x0f\n\x07sat_num\x18\x05 \x03(\r\x12\x0c\n\x04hdop\x18\x06 \x01(\x02\"j\n\x0cPositionSpec\x12+\n\x04spec\x18\x01 \x01(\x0e\x32\x1d.PositionSpec.PositionSpecDef\"-\n\x0fPositionSpecDef\x12\x07\n\x03P2D\x10\x00\x12\x07\n\x03P3D\x10\x01\x12\x08\n\x04\x42\x65st\x10\x02\"\x1b\n\x08ModemCmd\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\"\x91\x02\n\x0bModemStatus\x12\r\n\x05model\x18\x01 \x01(\t\x12\x0c\n\x04IMEI\x18\x02 \x01(\t\x12\x0e\n\x06gps_on\x18\x03 \x01(\x08\x12\x12\n\nSIM_status\x18\x04 \x01(\t\x12\x0c\n\x04IMSI\x18\x05 \x01(\t\x12\x12\n\nregistered\x18\x06 \x01(\x08\x12\x13\n\x0bnetwork_reg\x18\x07 \x01(\t\x12\x0e\n\x06PLMNID\x18\x08 \x01(\r\x12\x14\n\x0cnetwork_name\x18\t \x01(\t\x12\x0f\n\x07network\x18\n \x01(\t\x12\x0b\n\x03lac\x18\x0f \x01(\r\x12\n\n\x02\x63i\x18\x10 \x01(\r\x12\x0b\n\x03rat\x18\x0b \x01(\t\x12\x0c\n\x04\x62\x61nd\x18\x0c \x01(\t\x12\x0c\n\x04rssi\x18\r \x01(\x11\x12\x11\n\toperators\x18\x0e \x01(\t\"L\n\tModemResp\x12\x0f\n\x07\x66rameID\x18\x01 \x01(\r\x12\x10\n\x08response\x18\x02 \x01(\t\x12\x1c\n\x06status\x18\x03 \x01(\x0b\x32\x0c.ModemStatus2\xc1\x01\n\x0bGPS_Service\x12-\n\x0bgetPosition\x12\r.PositionSpec\x1a\r.GPS_Position\"\x00\x12)\n\tgetVector\x12\r.PositionSpec\x1a\x0b.GPS_Vector\"\x00\x12/\n\x0cgetPrecision\x12\r.PositionSpec\x1a\x0e.GPS_Precision\"\x00\x12\'\n\x0cmodemCommand\x12\t.ModemCmd\x1a\n.ModemResp\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\x11GPS_Service.proto\"e\n\x0cGPS_Position\x12\x0b\n\x03\x66ix\x18\x01 \x01(\x08\x12\x11\n\ttimestamp\x18\x02 \x01(\t\x12\x10\n\x08latitude\x18\x03 \x01(\x02\x12\x11\n\tlongitude\x18\x04 \x01(\x02\x12\x10\n\x08\x61ltitude\x18\x05 \x01(\x02\"k\n\nGPS_Vector\x12\x0b\n\x03\x66ix\x18\x01 \x01(\x08\x12\x11\n\ttimestamp\x18\x02 \x01(\t\x12\x10\n\x08latitude\x18\x03 \x01(\x02\x12\x11\n\tlongitude\x18\x04 \x01(\x02\x12\x0b\n\x03\x43OG\x18\x05 \x01(\x02\x12\x0b\n\x03SOG\x18\x06 \x01(\x02\"|\n\rGPS_Precision\x12\x0f\n\x07\x66rameID\x18\n \x01(\r\x12\x0b\n\x03\x66ix\x18\x01 \x01(\x08\x12\r\n\x05nbsat\x18\x02 \x01(\r\x12\x11\n\ttimestamp\x18\x03 \x01(\t\x12\x0c\n\x04\x64\x61te\x18\x04 \x01(\t\x12\x0f\n\x07sat_num\x18\x05 \x03(\r\x12\x0c\n\x04hdop\x18\x06 \x01(\x02\"j\n\x0cPositionSpec\x12+\n\x04spec\x18\x01 \x01(\x0e\x32\x1d.PositionSpec.PositionSpecDef\"-\n\x0fPositionSpecDef\x12\x07\n\x03P2D\x10\x00\x12\x07\n\x03P3D\x10\x01\x12\x08\n\x04\x42\x65st\x10\x02\"\x1b\n\x08ModemCmd\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\"\xa0\x02\n\x0bModemStatus\x12\r\n\x05model\x18\x01 \x01(\t\x12\x0c\n\x04IMEI\x18\x02 \x01(\t\x12\x0e\n\x06gps_on\x18\x03 \x01(\x08\x12\x12\n\nSIM_status\x18\x04 \x01(\t\x12\x0c\n\x04IMSI\x18\x05 \x01(\t\x12\r\n\x05ICCID\x18\x11 \x01(\t\x12\x12\n\nregistered\x18\x06 \x01(\x08\x12\x13\n\x0bnetwork_reg\x18\x07 \x01(\t\x12\x0e\n\x06PLMNID\x18\x08 \x01(\r\x12\x14\n\x0cnetwork_name\x18\t \x01(\t\x12\x0f\n\x07network\x18\n \x01(\t\x12\x0b\n\x03lac\x18\x0f \x01(\r\x12\n\n\x02\x63i\x18\x10 \x01(\r\x12\x0b\n\x03rat\x18\x0b \x01(\t\x12\x0c\n\x04\x62\x61nd\x18\x0c \x01(\t\x12\x0c\n\x04rssi\x18\r \x01(\x11\x12\x11\n\toperators\x18\x0e \x01(\t\"L\n\tModemResp\x12\x0f\n\x07\x66rameID\x18\x01 \x01(\r\x12\x10\n\x08response\x18\x02 \x01(\t\x12\x1c\n\x06status\x18\x03 \x01(\x0b\x32\x0c.ModemStatus2\xc1\x01\n\x0bGPS_Service\x12-\n\x0bgetPosition\x12\r.PositionSpec\x1a\r.GPS_Position\"\x00\x12)\n\tgetVector\x12\r.PositionSpec\x1a\x0b.GPS_Vector\"\x00\x12/\n\x0cgetPrecision\x12\r.PositionSpec\x1a\x0e.GPS_Precision\"\x00\x12\'\n\x0cmodemCommand\x12\t.ModemCmd\x1a\n.ModemResp\"\x00\x62\x06proto3')
 )
 
 
@@ -356,77 +356,84 @@ _MODEMSTATUS = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='registered', full_name='ModemStatus.registered', index=5,
+      name='ICCID', full_name='ModemStatus.ICCID', index=5,
+      number=17, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='registered', full_name='ModemStatus.registered', index=6,
       number=6, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='network_reg', full_name='ModemStatus.network_reg', index=6,
+      name='network_reg', full_name='ModemStatus.network_reg', index=7,
       number=7, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='PLMNID', full_name='ModemStatus.PLMNID', index=7,
+      name='PLMNID', full_name='ModemStatus.PLMNID', index=8,
       number=8, type=13, cpp_type=3, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='network_name', full_name='ModemStatus.network_name', index=8,
+      name='network_name', full_name='ModemStatus.network_name', index=9,
       number=9, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='network', full_name='ModemStatus.network', index=9,
+      name='network', full_name='ModemStatus.network', index=10,
       number=10, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='lac', full_name='ModemStatus.lac', index=10,
+      name='lac', full_name='ModemStatus.lac', index=11,
       number=15, type=13, cpp_type=3, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='ci', full_name='ModemStatus.ci', index=11,
+      name='ci', full_name='ModemStatus.ci', index=12,
       number=16, type=13, cpp_type=3, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='rat', full_name='ModemStatus.rat', index=12,
+      name='rat', full_name='ModemStatus.rat', index=13,
       number=11, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='band', full_name='ModemStatus.band', index=13,
+      name='band', full_name='ModemStatus.band', index=14,
       number=12, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='rssi', full_name='ModemStatus.rssi', index=14,
+      name='rssi', full_name='ModemStatus.rssi', index=15,
       number=13, type=17, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='operators', full_name='ModemStatus.operators', index=15,
+      name='operators', full_name='ModemStatus.operators', index=16,
       number=14, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -445,7 +452,7 @@ _MODEMSTATUS = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=497,
-  serialized_end=770,
+  serialized_end=785,
 )
 
 
@@ -489,8 +496,8 @@ _MODEMRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=772,
-  serialized_end=848,
+  serialized_start=787,
+  serialized_end=863,
 )
 
 _POSITIONSPEC.fields_by_name['spec'].enum_type = _POSITIONSPEC_POSITIONSPECDEF
@@ -562,8 +569,8 @@ _GPS_SERVICE = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=851,
-  serialized_end=1044,
+  serialized_start=866,
+  serialized_end=1059,
   methods=[
   _descriptor.MethodDescriptor(
     name='getPosition',

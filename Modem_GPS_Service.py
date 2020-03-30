@@ -113,9 +113,13 @@ def strGPSPosition(pos):
         str_res=str_res+" Time:"+str(pos.timestamp)+" LAT:"+str(pos.latitude)+" LONG:"+str(pos.longitude)
     return str_res
 
-def dictToResult(dict,res) :
-    for v in dict.items():
-        object.__setattr__(res,v[0],v[1])
+def dictToResult(dict_resp,res) :
+    for attr,val in dict_resp.items():
+        try:
+            object.__setattr__(res,attr,val)
+        except (ValueError, TypeError) :
+            gps_log.error("Error on gRPC encoding for attribute:"+attr)
+            print(attr,"=",val,type(val))
 
 
 

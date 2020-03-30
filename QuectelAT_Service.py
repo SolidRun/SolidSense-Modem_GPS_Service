@@ -185,6 +185,7 @@ class QuectelModem():
                 r=self.sendATcommand("+QCCID")
                 r=self.splitResponse("+QCCID",r[0])
                 self._ICCID=r[0]
+                # print("ICCID:",self._ICCID,"Type:",type(self._ICCID))
                 # allow full notifications on registration change
                 self.sendATcommand("+CREG=2")
         else:
@@ -653,6 +654,7 @@ class QuectelModem():
         out['SIM_status']= self.SIM_Status()
         if self.SIM_Present() :
             out['IMSI'] = self.IMSI()
+            out['ICCID'] = str(self.ICCID())
             if self._isRegistered :
                 out['registered'] = True
                 out['network_reg']= self._networkReg
