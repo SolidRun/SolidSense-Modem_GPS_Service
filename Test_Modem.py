@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
-# Name:        module1
-# Purpose:
+# Name:        Test Modem
+# Purpose:     Perform basic testing of the modem function
 #
 # Author:      Laurent Carré
 #
@@ -76,13 +76,15 @@ def main():
     elif option == "scan" :
         if modem.SIM_Ready():
             rescan(modem)
+    elif option == 'sms' :
+        checkSMS(modem)
     else:
         modem.allowRoaming()
 
 
     if modem.SIM_Ready():
         # we have a SIM so look how it goaes
-        checkSMS(modem)
+
         res= modem.networkStatus()
 
         if not res :
@@ -98,7 +100,7 @@ def main():
                     res=modem.networkStatus()
                     if res : break
                     nb_attempt += 1
-            if not res:
+            if not res and option == 'list':
                 print(modem.visibleOperators())
                 # try to Register from scratch
                 # clear forbidden PLMN and allow roaming
