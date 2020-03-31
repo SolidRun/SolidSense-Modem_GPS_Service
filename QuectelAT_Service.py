@@ -28,7 +28,7 @@ class ModemException(Exception) :
 class QuectelModem():
 
 
-    def __init__(self,ifName,log=False):
+    def __init__(self,ifName,log=False,init=True):
         global modem_log
         modem_log=logging.getLogger('Modem_GPS_Service')
         self._ifname = ifName
@@ -41,8 +41,8 @@ class QuectelModem():
 
         self._isRegistered= False
         self._networkReg="UNKNOWN"
-
-        self.initialize()
+        if init :
+            self.initialize()
         self._operatorNames=None # dictionary PLMN/Operator name
         return
 
@@ -683,7 +683,7 @@ class QuectelModem():
         modem_log.info ("TURNING RADIO OFF AND ON")
         modem_log.debug("Going to flight mode")
         self.sendATcommand("+CFUN=0",raiseException=True)
-        time.sleep(1.0)
+        time.sleep(5.0) # 5 sec recommended by Quectel
         modem_log.debug("Restoring normal mode")
         self.sendATcommand("+CFUN=1",raiseException=True)
         modem_log.info ("Allow 20-30 sec for the modem to restart")

@@ -83,16 +83,12 @@ class Modem_Service():
                     break
                 else:
                     # SIM is ready but we have a registration problem
-                    if self._modem.regStatus() == "DENIED" :
-                        # nothing we can do here
+                    if self._modem.regStatus() == "DENIED" or self._modem.regStatus() == "NO REG":
+                        # force to look to all network and then wait
+                        self._modem.selectOperator('AUTO')
+                        # let's stop as we can't do much here
                         break
-                    elif self._modem.regStatus() == "IN PROGRES" :
-                        time.sleep(2.0)
-                    elif self._modem.regStatus() == "NO REG":
-                        # force new registration
-
-                        #if nb_attempt == 2 :
-                        #    return True
+                    else:
                         time.sleep(2.0)
                         # return True
 
