@@ -88,7 +88,7 @@ do
 			check
 			exit
 			;;
-		-t|--check )
+		-t|--test )
 			shift
 			test_modem
 			exit
