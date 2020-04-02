@@ -1,46 +1,47 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 #  modem gps service on solid sense status request
 #
 
+# Global variables
+PROG_NAME="$(basename "${0}")"
 MDM_DIR=/opt/SolidSense/modem_gps
 
 # functions
 
 usage () {
 	echo "${PROG_NAME}:"
-	echo "    -h|--help						:display this help"
+	echo "    -h|--help                     :display this help"
 	echo "    -l|--list                     :list available networks"
-	echo "    -t|--test						:test the modem and attachment (as sudo)"
+	echo "    -t|--test                     :test the modem and attachment (as sudo), up to 2 optional arguments"
 	echo "    -n|--network                  :select an network"
 	echo "    -r|--rat                      :select a RAT (GSM/UTRAN/LTE)"
-	echo "	  -R|--reset					:reset the modem (as sudo)"
-	echo "	  -F|--factory_reset			:reset the modem to factory default(as sudo)"
-	echo "	  -c|--check					:check modem presence (as sudo)"
-	echo "	  no arguments					:print the modem status"
+	echo "    -R|--reset                    :reset the modem (as sudo)"
+	echo "    -F|--factory_reset            :reset the modem to factory default(as sudo)"
+	echo "    -c|--check                    :check modem presence (as sudo)"
+	echo "    no arguments                  :print the modem status"
 	exit 1
 }
 
 reset () {
 	echo " Resetting the modem, all communication will stop"
-	systemctl stop modem_gps
-	python3 $MDM_DIR/Factory_Reset.py
+	sudo systemctl stop modem_gps
+	sudo python3 ${MDM_DIR}/Factory_Reset.py
 	echo "Wait 30 seconds before performing further actions. Power cycle recommended"
-	
 }
 
 factory_reset() {
 	echo " Resetting the modem to factory default, all communication will stop"
-	systemctl stop modem_gps
-	python3 $MDM_DIR/Factory_Reset.py FULL
+	sudo systemctl stop modem_gps
+	sudo python3 ${MDM_DIR}/Factory_Reset.py FULL
 	echo "Wait 30 seconds before performing further actions. Power cycle recommended"
 }
 
 check () {
 	if [ -e /dev/ttyUSB2 ] ; then
 		echo "Modem control file present"
-		systemctl stop modem_gps
-		python3 $MDM_DIR/Test_Modem.py
+		sudo systemctl stop modem_gps
+		sudo python3 ${MDM_DIR}/Test_Modem.py
 		return 0
 	else
 		echo "No Modem control file detected"
@@ -49,24 +50,14 @@ check () {
 	fi
 }
 
-test_modem () {
-	echo "testing the modem - service will stop"
-	systemctl stop modem_gps
-	python3 $MDM_DIR/Test_Modem.py init
-	echo "to restart the service if test is ok: systemctl start modem_gps"
-}
-			
-
-options=$(getopt -l "help,list,network:,rat:,reset,factory_reset,check,test" -o "hln:r:RFct" -- "${@}")
-eval set -- "${options}"
-
 COMMAND="status"
 NETWORK=""
 RAT=""
 OPT1=""
 OPT2=""
+TEST_MODEM=1
 
-while true
+while (( "$#" ))
 do
 	case "${1}" in
 		-h|--help )
@@ -74,24 +65,24 @@ do
 			;;
 		-l|--list )
 			COMMAND="operator"
+			shift
 			;;
 		-n|--network )
-			shift
-			NETWORK="${1}"
+			NETWORK="${2}"
+			shift 2
 			;;
 		-r|--rat )
-			shift
-			RAT="${1}"
+			RAT="${2}"
+			shift 2
 			;;
 		-c|--check )
 			shift
 			check
 			exit
 			;;
-		-t|--check )
+		-t|--test )
 			shift
-			test_modem
-			exit
+			TEST_MODEM=0
 			;;
 		-R|--reset )
 			shift
@@ -103,21 +94,24 @@ do
 			factory_reset
 			exit
 			;;
-		\? )
-			usage
-			;;
-		: )
-			echo "Invalid option: ${OPTARG} requires an argument" 1>&2
-			;;
 		-- )
 			shift
 			break
 			;;
+		--*=|-* )
+			echo "Error: Unsupported flag ${1}" >&2
+			usage
+			exit 1
+			;;
 		* )
-			break
+			if [ -z "${PARAMS}" ]; then
+				PARAMS="${1}"
+			else
+				PARAMS="${PARAMS} ${1}"
+			fi
+			shift
 			;;
 	esac
-	shift
 done
 
 if [ -n "${NETWORK}" ]; then
@@ -133,6 +127,23 @@ if [ -n "${RAT}" ]; then
 		OPT2=${RAT}
 	fi
 fi
-# echo "${COMMAND} ${OPT1} ${OPT2}"
 
-python3 /opt/SolidSense/modem_gps/Modem_Service_Client.py 127.0.0.1:20231 ${COMMAND} "${OPT1}" ${OPT2}
+if [ ${TEST_MODEM} -eq 0 ]; then
+	echo "Testing the modem - service will stop"
+	sudo systemctl stop modem_gps
+
+	if [ -z "${PARAMS}" ]; then
+		python3 ${MDM_DIR}/Test_Modem.py
+	else
+		if [ $# -gt 2 ]; then
+			echo "More than 2 optional arguments for '--test'"
+			usage
+			exit 1
+		fi
+		python3 ${MDM_DIR}/Test_Modem.py "${PARAMS}"
+	fi
+
+	echo "To restart the restart if test is ok: sudo systemctl start modem_gps"
+else
+	python3 ${MDM_DIR}/Modem_Service_Client.py 127.0.0.1:20231 ${COMMAND} ${OPT1} "${OPT2}"
+fi

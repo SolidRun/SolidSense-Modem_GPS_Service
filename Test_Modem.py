@@ -15,13 +15,16 @@ import time
 
 from QuectelAT_Service import *
 
+log=None
+
 def checkSMS(modem):
+    global log
     resp=modem.sendATcommand("+CSMS?")
     s=modem.splitResponse("+CSMS",resp[0])
-    print("SMS service type",s[0],"MO:",s[1],"MT:",s[2],"BM:",s[3])
+    log.info("SMS service type: "+str(s[0])+" MO:"+str(s[1])+" MT:"+str(s[2])+" BM:"+str(s[3]))
     resp=modem.sendATcommand("+CSCA?")
     s=modem.splitResponse("+CSCA",resp[0])
-    print("SMS Service center:",s[0])
+    log.info("SMS Service center:"+str(s[0])  )
 
 
 def init(modem):
@@ -32,12 +35,13 @@ def init(modem):
     modem.logModemStatus()
 
 def rescan(modem):
-    print("Resetting network scan mode")
+    global log
+    log.info("Resetting network scan mode")
     modem.sendATcommand('+QCFG=”nwscanmode”,0,1')
     modem.selectOperator('AUTO')
 
 def main():
-
+    global log
     log=logging.getLogger('Modem_GPS_Service')
     log.addHandler(logging.StreamHandler())
     log.setLevel(logging.DEBUG)
@@ -67,12 +71,12 @@ def main():
         init(modem)
     elif option == "cmd" :
         if len(sys.argv) >2 :
-            print("sending:",sys.argv[2])
+            log.info("sending:"+sys.argv[2])
             resp=modem.sendATcommand(sys.argv[2],True)
             for r in resp:
-                print(r)
+                log.info(r)
         else:
-            print("Missing command argument")
+            log.info("Missing command argument")
     elif option == "scan" :
         if modem.SIM_Ready():
             rescan(modem)
@@ -90,10 +94,10 @@ def main():
         if not res :
             # let's see what is the situation
             state=modem.regStatus()
-            print("Modem registration status:",state)
+            log.info("Modem registration status:"+state)
             if state == "IN PROGRESS" :
                 # just wait
-                print("Registration in progress => waiting")
+                log.info("Registration in progress => waiting")
                 nb_attempt=0
                 while nb_attempt < 10 :
                     time.sleep(2.0)
@@ -101,7 +105,7 @@ def main():
                     if res : break
                     nb_attempt += 1
             if not res and option == 'list':
-                print(modem.visibleOperators())
+                log.info(modem.visibleOperators())
                 # try to Register from scratch
                 # clear forbidden PLMN and allow roaming
 
