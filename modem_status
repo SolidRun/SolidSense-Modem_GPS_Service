@@ -133,7 +133,7 @@ if [ ${TEST_MODEM} -eq 0 ]; then
 	sudo systemctl stop modem_gps
 
 	if [ -z "${PARAMS}" ]; then
-		python3 ${MDM_DIR}/Test_Modem.py init
+		python3 ${MDM_DIR}/Test_Modem.py
 	else
 		if [ $# -gt 2 ]; then
 			echo "More than 2 optional arguments for '--test'"
