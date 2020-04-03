@@ -16,7 +16,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="SolidSense-Modem-GPS", # Replace with your own username
-    version="1.0.3",
+    version="1.2.1",
     author="Laurent Carré",
     author_email="laurent.carre@sterwen-technology.eu",
     description="A small example package",
