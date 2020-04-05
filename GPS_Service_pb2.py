@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x11GPS_Service.proto\"e\n\x0cGPS_Position\x12\x0b\n\x03\x66ix\x18\x01 \x01(\x08\x12\x11\n\ttimestamp\x18\x02 \x01(\t\x12\x10\n\x08latitude\x18\x03 \x01(\x02\x12\x11\n\tlongitude\x18\x04 \x01(\x02\x12\x10\n\x08\x61ltitude\x18\x05 \x01(\x02\"k\n\nGPS_Vector\x12\x0b\n\x03\x66ix\x18\x01 \x01(\x08\x12\x11\n\ttimestamp\x18\x02 \x01(\t\x12\x10\n\x08latitude\x18\x03 \x01(\x02\x12\x11\n\tlongitude\x18\x04 \x01(\x02\x12\x0b\n\x03\x43OG\x18\x05 \x01(\x02\x12\x0b\n\x03SOG\x18\x06 \x01(\x02\"|\n\rGPS_Precision\x12\x0f\n\x07\x66rameID\x18\n \x01(\r\x12\x0b\n\x03\x66ix\x18\x01 \x01(\x08\x12\r\n\x05nbsat\x18\x02 \x01(\r\x12\x11\n\ttimestamp\x18\x03 \x01(\t\x12\x0c\n\x04\x64\x61te\x18\x04 \x01(\t\x12\x0f\n\x07sat_num\x18\x05 \x03(\r\x12\x0c\n\x04hdop\x18\x06 \x01(\x02\"j\n\x0cPositionSpec\x12+\n\x04spec\x18\x01 \x01(\x0e\x32\x1d.PositionSpec.PositionSpecDef\"-\n\x0fPositionSpecDef\x12\x07\n\x03P2D\x10\x00\x12\x07\n\x03P3D\x10\x01\x12\x08\n\x04\x42\x65st\x10\x02\"\x1b\n\x08ModemCmd\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\"\xa0\x02\n\x0bModemStatus\x12\r\n\x05model\x18\x01 \x01(\t\x12\x0c\n\x04IMEI\x18\x02 \x01(\t\x12\x0e\n\x06gps_on\x18\x03 \x01(\x08\x12\x12\n\nSIM_status\x18\x04 \x01(\t\x12\x0c\n\x04IMSI\x18\x05 \x01(\t\x12\r\n\x05ICCID\x18\x11 \x01(\t\x12\x12\n\nregistered\x18\x06 \x01(\x08\x12\x13\n\x0bnetwork_reg\x18\x07 \x01(\t\x12\x0e\n\x06PLMNID\x18\x08 \x01(\r\x12\x14\n\x0cnetwork_name\x18\t \x01(\t\x12\x0f\n\x07network\x18\n \x01(\t\x12\x0b\n\x03lac\x18\x0f \x01(\r\x12\n\n\x02\x63i\x18\x10 \x01(\r\x12\x0b\n\x03rat\x18\x0b \x01(\t\x12\x0c\n\x04\x62\x61nd\x18\x0c \x01(\t\x12\x0c\n\x04rssi\x18\r \x01(\x11\x12\x11\n\toperators\x18\x0e \x01(\t\"L\n\tModemResp\x12\x0f\n\x07\x66rameID\x18\x01 \x01(\r\x12\x10\n\x08response\x18\x02 \x01(\t\x12\x1c\n\x06status\x18\x03 \x01(\x0b\x32\x0c.ModemStatus2\xc1\x01\n\x0bGPS_Service\x12-\n\x0bgetPosition\x12\r.PositionSpec\x1a\r.GPS_Position\"\x00\x12)\n\tgetVector\x12\r.PositionSpec\x1a\x0b.GPS_Vector\"\x00\x12/\n\x0cgetPrecision\x12\r.PositionSpec\x1a\x0e.GPS_Precision\"\x00\x12\'\n\x0cmodemCommand\x12\t.ModemCmd\x1a\n.ModemResp\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\x11GPS_Service.proto\"d\n\x0cGPS_Position\x12\x0b\n\x03\x66ix\x18\x01 \x01(\x08\x12\x10\n\x08gps_time\x18\x02 \x01(\t\x12\x10\n\x08latitude\x18\x03 \x01(\x02\x12\x11\n\tlongitude\x18\x04 \x01(\x02\x12\x10\n\x08\x61ltitude\x18\x05 \x01(\x02\"|\n\nGPS_Vector\x12\x0b\n\x03\x66ix\x18\x01 \x01(\x08\x12\x10\n\x08gps_time\x18\x02 \x01(\t\x12\x10\n\x08latitude\x18\x03 \x01(\x02\x12\x11\n\tlongitude\x18\x04 \x01(\x02\x12\x10\n\x08\x61ltitude\x18\x07 \x01(\x02\x12\x0b\n\x03\x43OG\x18\x05 \x01(\x02\x12\x0b\n\x03SOG\x18\x06 \x01(\x02\"{\n\rGPS_Precision\x12\x0f\n\x07\x66rameID\x18\n \x01(\r\x12\x0b\n\x03\x66ix\x18\x01 \x01(\x08\x12\r\n\x05nbsat\x18\x02 \x01(\r\x12\x10\n\x08gps_time\x18\x03 \x01(\t\x12\x0c\n\x04\x64\x61te\x18\x04 \x01(\t\x12\x0f\n\x07sat_num\x18\x05 \x03(\r\x12\x0c\n\x04hdop\x18\x06 \x01(\x02\"j\n\x0cPositionSpec\x12+\n\x04spec\x18\x01 \x01(\x0e\x32\x1d.PositionSpec.PositionSpecDef\"-\n\x0fPositionSpecDef\x12\x07\n\x03P2D\x10\x00\x12\x07\n\x03P3D\x10\x01\x12\x08\n\x04\x42\x65st\x10\x02\"\x1b\n\x08ModemCmd\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\"\xa0\x02\n\x0bModemStatus\x12\r\n\x05model\x18\x01 \x01(\t\x12\x0c\n\x04IMEI\x18\x02 \x01(\t\x12\x0e\n\x06gps_on\x18\x03 \x01(\x08\x12\x12\n\nSIM_status\x18\x04 \x01(\t\x12\x0c\n\x04IMSI\x18\x05 \x01(\t\x12\r\n\x05ICCID\x18\x11 \x01(\t\x12\x12\n\nregistered\x18\x06 \x01(\x08\x12\x13\n\x0bnetwork_reg\x18\x07 \x01(\t\x12\x0e\n\x06PLMNID\x18\x08 \x01(\r\x12\x14\n\x0cnetwork_name\x18\t \x01(\t\x12\x0f\n\x07network\x18\n \x01(\t\x12\x0b\n\x03lac\x18\x0f \x01(\r\x12\n\n\x02\x63i\x18\x10 \x01(\r\x12\x0b\n\x03rat\x18\x0b \x01(\t\x12\x0c\n\x04\x62\x61nd\x18\x0c \x01(\t\x12\x0c\n\x04rssi\x18\r \x01(\x11\x12\x11\n\toperators\x18\x0e \x01(\t\"L\n\tModemResp\x12\x0f\n\x07\x66rameID\x18\x01 \x01(\r\x12\x10\n\x08response\x18\x02 \x01(\t\x12\x1c\n\x06status\x18\x03 \x01(\x0b\x32\x0c.ModemStatus2\x91\x02\n\x0bGPS_Service\x12-\n\x0bgetPosition\x12\r.PositionSpec\x1a\r.GPS_Position\"\x00\x12)\n\tgetVector\x12\r.PositionSpec\x1a\x0b.GPS_Vector\"\x00\x12/\n\x0cgetPrecision\x12\r.PositionSpec\x1a\x0e.GPS_Precision\"\x00\x12\'\n\tstreamGPS\x12\t.ModemCmd\x1a\x0b.GPS_Vector\"\x00\x30\x01\x12%\n\nstopStream\x12\t.ModemCmd\x1a\n.ModemResp\"\x00\x12\'\n\x0cmodemCommand\x12\t.ModemCmd\x1a\n.ModemResp\"\x00\x62\x06proto3')
 )
 
 
@@ -46,8 +46,8 @@ _POSITIONSPEC_POSITIONSPECDEF = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=420,
-  serialized_end=465,
+  serialized_start=435,
+  serialized_end=480,
 )
 _sym_db.RegisterEnumDescriptor(_POSITIONSPEC_POSITIONSPECDEF)
 
@@ -67,7 +67,7 @@ _GPS_POSITION = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='timestamp', full_name='GPS_Position.timestamp', index=1,
+      name='gps_time', full_name='GPS_Position.gps_time', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -107,7 +107,7 @@ _GPS_POSITION = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=21,
-  serialized_end=122,
+  serialized_end=121,
 )
 
 
@@ -126,7 +126,7 @@ _GPS_VECTOR = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='timestamp', full_name='GPS_Vector.timestamp', index=1,
+      name='gps_time', full_name='GPS_Vector.gps_time', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -147,14 +147,21 @@ _GPS_VECTOR = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='COG', full_name='GPS_Vector.COG', index=4,
+      name='altitude', full_name='GPS_Vector.altitude', index=4,
+      number=7, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='COG', full_name='GPS_Vector.COG', index=5,
       number=5, type=2, cpp_type=6, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='SOG', full_name='GPS_Vector.SOG', index=5,
+      name='SOG', full_name='GPS_Vector.SOG', index=6,
       number=6, type=2, cpp_type=6, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
@@ -172,8 +179,8 @@ _GPS_VECTOR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=124,
-  serialized_end=231,
+  serialized_start=123,
+  serialized_end=247,
 )
 
 
@@ -206,7 +213,7 @@ _GPS_PRECISION = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='timestamp', full_name='GPS_Precision.timestamp', index=3,
+      name='gps_time', full_name='GPS_Precision.gps_time', index=3,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -245,8 +252,8 @@ _GPS_PRECISION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=233,
-  serialized_end=357,
+  serialized_start=249,
+  serialized_end=372,
 )
 
 
@@ -277,8 +284,8 @@ _POSITIONSPEC = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=359,
-  serialized_end=465,
+  serialized_start=374,
+  serialized_end=480,
 )
 
 
@@ -308,8 +315,8 @@ _MODEMCMD = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=467,
-  serialized_end=494,
+  serialized_start=482,
+  serialized_end=509,
 )
 
 
@@ -451,8 +458,8 @@ _MODEMSTATUS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=497,
-  serialized_end=785,
+  serialized_start=512,
+  serialized_end=800,
 )
 
 
@@ -496,8 +503,8 @@ _MODEMRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=787,
-  serialized_end=863,
+  serialized_start=802,
+  serialized_end=878,
 )
 
 _POSITIONSPEC.fields_by_name['spec'].enum_type = _POSITIONSPEC_POSITIONSPECDEF
@@ -569,8 +576,8 @@ _GPS_SERVICE = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=866,
-  serialized_end=1059,
+  serialized_start=881,
+  serialized_end=1154,
   methods=[
   _descriptor.MethodDescriptor(
     name='getPosition',
@@ -600,9 +607,27 @@ _GPS_SERVICE = _descriptor.ServiceDescriptor(
     serialized_options=None,
   ),
   _descriptor.MethodDescriptor(
+    name='streamGPS',
+    full_name='GPS_Service.streamGPS',
+    index=3,
+    containing_service=None,
+    input_type=_MODEMCMD,
+    output_type=_GPS_VECTOR,
+    serialized_options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='stopStream',
+    full_name='GPS_Service.stopStream',
+    index=4,
+    containing_service=None,
+    input_type=_MODEMCMD,
+    output_type=_MODEMRESP,
+    serialized_options=None,
+  ),
+  _descriptor.MethodDescriptor(
     name='modemCommand',
     full_name='GPS_Service.modemCommand',
-    index=3,
+    index=5,
     containing_service=None,
     input_type=_MODEMCMD,
     output_type=_MODEMRESP,

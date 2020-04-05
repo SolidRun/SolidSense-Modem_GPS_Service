@@ -16,6 +16,7 @@ import logging
 import threading
 import time
 import sys
+import queue
 
 # grpc modules
 import grpc
@@ -27,15 +28,15 @@ from Modem_GPS_Parameters import *
 from Modem_Service import *
 
 gps_log=None
-modem_gps_version="1.2.2"
+modem_gps_version="1.2.1"
 
 grpc_server=None
 exit_flag= -1
 
 class GPS_data():
 
-    position_fields=(('longitude',float),('latitude',float),('timestamp',str))
-    vector_fields =(('longitude',float),('latitude',float),('timestamp',str),('COG',float),('SOG',float))
+    position_fields=(('longitude',float),('latitude',float),('gps_time',str))
+    vector_fields =(('longitude',float),('latitude',float),('gps_time',str),('altitude',float),('COG',float),('SOG',float))
 
 
     def __init__(self):
@@ -99,7 +100,7 @@ class GPS_data():
             result.sat_num.append(sat)
         if result.fix :
             result.hdop=self._data['hdop']
-            result.timestamp=self._data['timestamp']
+            result.gps_time=self._data['gps_time']
             result.date=self._data['date']
         self._lock.release()
         return result
@@ -110,7 +111,7 @@ class GPS_data():
 def strGPSPosition(pos):
     str_res="GPS Fixed:"+str(pos.fix)
     if pos.fix :
-        str_res=str_res+" Time:"+str(pos.timestamp)+" LAT:"+str(pos.latitude)+" LONG:"+str(pos.longitude)
+        str_res=str_res+" Time:"+str(pos.gps_time)+" LAT:"+str(pos.latitude)+" LONG:"+str(pos.longitude)
     return str_res
 
 def dictToResult(dict_resp,res) :
@@ -130,6 +131,7 @@ class GPS_ServiceReader(GPS_Reader) :
         GPS_Reader.__init__(self)
         self._result=data_block
         self._synchro=synchro_block
+        self._continuous=False
 
     def run(self):
 
@@ -138,35 +140,107 @@ class GPS_ServiceReader(GPS_Reader) :
                 # we need to exit the loop
                 gps_log.info("GPS Thread Stop request received")
                 break   # stop the thread
-            gps_log.debug("GPS start measuring")
-            self.runOnce()
-            self._synchro.gpsReady()
+            if self._continuous :
+                self.runContinuous()
+            else:
+                gps_log.debug("GPS start measuring")
+                self.runOnce()
+                self._synchro.gpsReady()
+                self._synchro.checkTimer()
             if self._synchro.stopThread() :
                 gps_log.info("GPS Thread Stop request received")
                 break   # stop the thread
-            self._synchro.checkTimer()
 
-    '''
+
+    def setContinuous(self,send_queue,rules):
+        gps_log.debug("GPS Reader set in continuous mode param:"+str(rules))
+        self._continuous=True
+        self._last=False
+        self._queue=send_queue
+        self._rules=rules
+        self._fixtime=time.time()
+        self._nofixtime=self._fixtime
+        self._movingtime=self._fixtime
+        self._reportime=self._fixtime
+        self._refpos=None
+
+        #
+        # the following values shall be fixed via rules
+        #
+        self._fixtime_interval=rules.get('fix_interval',10.) # report every minutes when not moving
+        self._nofixtime_interval= rules.get('nofix_interval',60.) # report every 30mn if no fix
+        self._distance = rules.get('distance',100.0) # reports every 100m when moving
+        self._min_speed=self._distance/self._fixtime_interval
+
+    def stopContinuous(self):
+        self._last=True
+        gps_log.debug("GPS Reader request to non continuous mode")
+
+
+    def pushPosition(self):
+        result=GPS_Service_pb2.GPS_Vector()
+        result.fix=self._data['fix']
+        if result.fix :
+            self.buildResult(result,GPS_data.vector_fields)
+        try:
+            self._queue.put(result)
+        except queue.Full :
+            gps_log.critical("GPS send queue FULL")
+
+        gps_log.debug("Pushing one position in the queue")
+        if self._last:
+            self._continuous=False
+            gps_log.debug("GPS Reader stop continuous mode")
+            self._synchro.stop()
+        return result
+
+
     def runContinuous(self):
-        while self._continuous:
-            try:
-                self.flush()
-                self.readNMEAFrame()
-            except KeyboardInterrupt :
-                exit()
-            self._result.setData(self._data)
-            if self._fix :
-                time.sleep(.5)
+
+        self.readNMEAFrame()
+
+        t=time.time()
+        if self._fix :
+            speed=self._data['SOG']
+            speed_ms=speed*(1852.0/3600.0)
+            if speed_ms < self._min_speed :
+                # check time for
+                if t-self._fixtime >= self._fixtime_interval :
+                    self.pushPosition()
+                    self._fixtime = t
             else:
-                time.sleep(5.)
-            # self._result.printData()
-    '''
+
+                dist=speed_ms*(t-self._movingtime)
+                if dist >= self._distance :
+                    self.pushPosition()
+                    self._movingtime=t
+
+        else:
+            if (t-self._nofixtime) >= self._nofixtime_interval :
+                self.pushPosition()
+                self._nofixtime=t
+
+        if (t-self._reportime) >= 10. :
+            self._result.setData(self._data)
+            self._reportime=t
+
 
     def runOnce(self):
         self.flush()
         self.readNMEAFrame()
         self._result.setData(self._data)
 
+    def buildResult(self,result,data_set):
+        for d in data_set:
+            try:
+                v=self._data[d[0]]
+            except KeyError:
+                result.fix=False
+                return
+            if type(v) != d[1] :
+                result.fix=False
+                return
+            object.__setattr__(result,d[0],v)
 
 
 class GPS_nmea_simulator(GPS_Reader) :
@@ -201,11 +275,12 @@ class GPS_nmea_simulator(GPS_Reader) :
 
 class GPS_Servicer(GPS_Service_pb2_grpc.GPS_ServiceServicer) :
 
-    def __init__(self,gps_data,synchro,modem):
+    def __init__(self,gps_data,synchro,modem,reader):
         self._gps_data=gps_data
         self._synchro=synchro
         self._frameID=0
         self._modem=modem
+        self._reader=reader
 
 
 
@@ -229,7 +304,7 @@ class GPS_Servicer(GPS_Service_pb2_grpc.GPS_ServiceServicer) :
         pre=self._gps_data.getGPSPrecision()
         pre.frameID=self._frameID
         self._frameID= self._frameID + 1
-        gps_log.debug('GPS SERVICE GET PRECISION '+pre.date+' '+pre.timestamp+" ID:"+str(pre.frameID) )
+        gps_log.debug('GPS SERVICE GET PRECISION '+pre.date+' '+pre.gps_time+" ID:"+str(pre.frameID) )
         return pre
 
     def modemCommand(self,request,context):
@@ -259,6 +334,46 @@ class GPS_Servicer(GPS_Service_pb2_grpc.GPS_ServiceServicer) :
         gps_log.debug('MODEM COMMAND SERVICE RESPONSE:'+resp.response)
         return resp
 
+    def streamGPS(self,request,context) :
+        gps_log.debug("GPS SERVICE STREAM READING")
+        try:
+            cmd=json.loads(request.command)
+        except ValueError as e:
+            gps_log.error("GPS service: Error decoding streaming parameters")
+            cmd={}
+
+        # create the queue
+        gps_queue=queue.Queue(20)
+        self._synchro.setGPSContinuous()
+        self.stop_flag=False
+        self._reader.setContinuous(gps_queue,cmd)
+        self._synchro.startContinuous()
+        while True:
+
+            if self.stop_flag :
+                # empty the queue
+                # to be done
+                gps_log.debug("Stop GPS streaing flag detected")
+                while not gps_queue.empty() :
+                    pos=gps_queue.get()
+                    yield pos
+                gps_log.debug("Position queue is now empty")
+                return
+            else:
+                pos=gps_queue.get()
+                yield pos
+
+    def stopStream(self,request,context):
+        gps_log.debug("GPS SERVICE STOP STREAM READING")
+        # self._synchro.stop()
+        self._reader.stopContinuous()
+        self.stop_flag=True
+        # the system runs until the next message is pushed
+        resp=GPS_Service_pb2.ModemResp()
+        resp.response="OK"
+        return resp
+
+
 
 class GPS_thread(threading.Thread) :
 
@@ -273,10 +388,10 @@ class GPS_thread(threading.Thread) :
 
 class GPS_Service_Server():
 
-    def __init__(self,data_block,synchro,modem_server) :
+    def __init__(self,data_block,synchro,modem_server,reader) :
         self._synchro=synchro
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        GPS_Service_pb2_grpc.add_GPS_ServiceServicer_to_server(GPS_Servicer(data_block,synchro,modem_server),self._server)
+        GPS_Service_pb2_grpc.add_GPS_ServiceServicer_to_server(GPS_Servicer(data_block,synchro,modem_server,reader),self._server)
         l_address = getparam('address')
         port=getparam('port')
         address=l_address+':'+str(port)
@@ -313,11 +428,12 @@ class GPS_Service_Synchro() :
 
     def stop(self):
         # print("Synchro timer expire")
-        if self._state == 1 :
+        if self._state != 0 :
             self._go_GPS.clear()
             self._state=0
 
     def waitStart(self):
+        # unblock the GPS and wait for data
         if self._state == 0 :
             # print("Synchro - unclock GPS")
             self._timer=time.time()
@@ -326,13 +442,17 @@ class GPS_Service_Synchro() :
             self._waitGPS.wait()
             # print("Synchro - GPS ready")
             self._state=1
+        elif self._state == 2:
+            return
         else:
             self._timer=time.time()
 
     def gpsReady(self):
+        # signal that the GPS measures are ready
         self._waitGPS.set()
 
     def gpsWait(self):
+        # block the GPS thread
         self._go_GPS.wait()
         return self._stopThread
 
@@ -347,6 +467,18 @@ class GPS_Service_Synchro() :
 
     def stopThread(self):
         return self._stopThread
+
+    def setGPSContinuous(self):
+        if self._state == 0:
+            self._state=2
+            return
+        self.stop()
+        self._waitGPS.wait()
+        self._state=2
+
+    def startContinuous(self):
+        self._go_GPS.set()
+
 
 
 def OkModem():
@@ -437,7 +569,7 @@ def main():
     #
     # create the gRPC server
     #
-    grpc_server=GPS_Service_Server(data_block,synchro,ms)
+    grpc_server=GPS_Service_Server(data_block,synchro,ms,nmea_reader)
 
     nmea_thread.start()
     grpc_server.start()

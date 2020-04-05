@@ -37,6 +37,22 @@ class GPS_Service_Client():
         resp=self._stub.getPrecision(req)
         return resp
 
+    def streamGPS(self,cmd):
+        req=ModemCmd()
+        req.command=cmd
+        for pos in self._stub.streamGPS(req) :
+            printPos(pos)
+
+    def stopStream(self):
+        req=ModemCmd()
+        req.command="STOP"
+        self._stub.stopStream(req)
+
+def printPos(resp):
+    if resp.fix :
+        print("TIME:",resp.gps_time,"LAT:",resp.latitude,"LONG:",resp.longitude,"ALT:",resp.altitude,"SOG:",resp.SOG,"COG:",resp.COG)
+    else:
+        print("No Fix")
 
 def main():
 
@@ -46,9 +62,9 @@ def main():
     resp=gps.getGPSPrecision()
     print("Receive frame=",resp.frameID)
     if resp.fix :
-        print("GPS FIXED date:",resp.date, "time:",resp.timestamp)
+        print("GPS FIXED date:",resp.date, "time:",resp.gps_time)
         resp=gps.getGPSVector()
-        print("LAT:",resp.latitude,"LONG:",resp.longitude,"SOG:",resp.SOG,"COG:",resp.COG)
+        print("LAT:",resp.latitude,"LONG:",resp.longitude,"ALT:",resp.altitude,"SOG:",resp.SOG,"COG:",resp.COG)
     else:
         print("GPS Not fixed")
         res="Satellite in view:"+str(resp.nbsat)+" ["
@@ -56,6 +72,9 @@ def main():
             res= res+str(n)+","
         res=res+"]"
         print (res)
+
+
+    gps.streamGPS("AAAA")
 
 
 

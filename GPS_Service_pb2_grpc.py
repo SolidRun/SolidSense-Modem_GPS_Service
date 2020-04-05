@@ -29,6 +29,16 @@ class GPS_ServiceStub(object):
         request_serializer=GPS__Service__pb2.PositionSpec.SerializeToString,
         response_deserializer=GPS__Service__pb2.GPS_Precision.FromString,
         )
+    self.streamGPS = channel.unary_stream(
+        '/GPS_Service/streamGPS',
+        request_serializer=GPS__Service__pb2.ModemCmd.SerializeToString,
+        response_deserializer=GPS__Service__pb2.GPS_Vector.FromString,
+        )
+    self.stopStream = channel.unary_unary(
+        '/GPS_Service/stopStream',
+        request_serializer=GPS__Service__pb2.ModemCmd.SerializeToString,
+        response_deserializer=GPS__Service__pb2.ModemResp.FromString,
+        )
     self.modemCommand = channel.unary_unary(
         '/GPS_Service/modemCommand',
         request_serializer=GPS__Service__pb2.ModemCmd.SerializeToString,
@@ -61,6 +71,20 @@ class GPS_ServiceServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def streamGPS(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def stopStream(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def modemCommand(self, request, context):
     # missing associated documentation comment in .proto file
     pass
@@ -85,6 +109,16 @@ def add_GPS_ServiceServicer_to_server(servicer, server):
           servicer.getPrecision,
           request_deserializer=GPS__Service__pb2.PositionSpec.FromString,
           response_serializer=GPS__Service__pb2.GPS_Precision.SerializeToString,
+      ),
+      'streamGPS': grpc.unary_stream_rpc_method_handler(
+          servicer.streamGPS,
+          request_deserializer=GPS__Service__pb2.ModemCmd.FromString,
+          response_serializer=GPS__Service__pb2.GPS_Vector.SerializeToString,
+      ),
+      'stopStream': grpc.unary_unary_rpc_method_handler(
+          servicer.stopStream,
+          request_deserializer=GPS__Service__pb2.ModemCmd.FromString,
+          response_serializer=GPS__Service__pb2.ModemResp.SerializeToString,
       ),
       'modemCommand': grpc.unary_unary_rpc_method_handler(
           servicer.modemCommand,

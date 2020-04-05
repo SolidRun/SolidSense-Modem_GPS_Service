@@ -7,7 +7,7 @@ syntax="proto3";
 message GPS_Position {
 	// message with the static position
 	bool fix=1;// True if GPS is fixed, if false all other fields are irrelevant
-	string timestamp=2;	// UTC time of the position
+	string gps_time=2;	// UTC time of the position
 	float	latitude=3;	// latitude in decimal degree +north -south
 	float	longitude=4; // longitude in decimal degree + east - west
 	float	altitude=5;	 // in meter above sea level. No always present
@@ -16,9 +16,10 @@ message GPS_Position {
 message GPS_Vector {
 	// message with start position (2D) and moving vector
 	bool fix=1;// True if GPS is fixed, if false all other fields are irrelevant
-	string timestamp=2;	// UTC time of the position
+	string gps_time=2;	// UTC time of the position
 	float	latitude=3;	// latitude in decimal degree +north -south
 	float	longitude=4; // longitude in decimal degree + east - west
+	float	altitude=7;	 // altitude in meters
 	float	COG=5;		// Cape on Ground in decimal degree
 	float	SOG=6;		// Speed on ground in knots
 	}
@@ -28,7 +29,7 @@ message GPS_Precision {
 	uint32 frameID= 10;
 	bool fix=1;		// True if GPS is fixed, if false all other fields are irrelevant
 	uint32 nbsat=2; // Number of sattelites in the fix
-	string timestamp=3;	// UTC time
+	string gps_time=3;	// UTC time
 	string date=4;		// date
 	repeated uint32 sat_num=5;	// List of the satellites numbers seen in fix
 	float hdop = 6;		// Horizontal dilution of precision
@@ -78,6 +79,8 @@ service GPS_Service {
 	rpc getPosition(PositionSpec) returns (GPS_Position) {}
 	rpc getVector(PositionSpec) returns (GPS_Vector) {}
 	rpc getPrecision(PositionSpec) returns(GPS_Precision) {}
+	rpc streamGPS(ModemCmd) returns (stream GPS_Vector) {}
+	rpc stopStream(ModemCmd) returns (ModemResp) {}
 	rpc modemCommand(ModemCmd) returns(ModemResp){}
 	}
 	

@@ -87,6 +87,7 @@ class GPS_Reader():
                                     self._data['fix']=True
                                 self._data['hdop']=float(msg.horizontal_dil)
                                 self._data['nbsat'] = int(msg.num_sats)
+                                self._data['altitude']=float(msg.altitude)
 
                     elif sentence_type == 'GSV' :
                             #first_sat=(int(msg.msg_num) - 1)*4
@@ -109,9 +110,10 @@ class GPS_Reader():
                             return
                         msg_rmc=msg
 
-                        self._data['timestamp']= msg_rmc.timestamp.strftime("%H:%M:%S.%f")
+                        self._data['gps_time']= msg_rmc.timestamp.strftime("%H:%M:%S.%f")
                         self._data['latitude']= msg_rmc.latitude
                         self._data['longitude']=msg_rmc.longitude
+
                         self._data['date']=msg.datestamp.strftime("%d/%m/%y")
                         if msg_rmc.spd_over_grnd != None :
                             self._data['SOG']= msg_rmc.spd_over_grnd
@@ -141,9 +143,9 @@ def main():
     gps_serv_log=logging.getLogger('Modem_GPS_Service')
     gps_serv_log.setLevel(logging.DEBUG)
     reader=GPS_Reader()
-    # reader.traceNMEA()
-    reader.readNMEAFrame()
-    reader.dataPrint()
+    reader.traceNMEA()
+    # reader.readNMEAFrame()
+    # reader.dataPrint()
 
 
 if __name__ == '__main__':
