@@ -28,7 +28,7 @@ from Modem_GPS_Parameters import *
 from Modem_Service import *
 
 gps_log=None
-modem_gps_version="1.2.1"
+modem_gps_version="2.0.0"
 
 grpc_server=None
 exit_flag= -1
@@ -372,7 +372,36 @@ class GPS_Servicer(GPS_Service_pb2_grpc.GPS_ServiceServicer) :
         resp=GPS_Service_pb2.ModemResp()
         resp.response="OK"
         return resp
+    '''
+    SMS related commands
+    '''
+    def sendSMS(self,request,context):
+        gps_log.debug("MODEM SERVICE SEND SMS")
+        result=self._modem.sendSMS(request.destination,request.text)
+        resp=GPS_Service_pb2.ModemResp()
+        gps_log.debug("SMS sending to:"+request.destination+" result="+result)
+        resp.frameID=self._frameID
+        self._frameID= self._frameID + 1
+        resp.response=result
+        return resp
 
+    def checkSMSCommand(self,request,context):
+        gps_log.debug("MODEM SERVICE CHECK SMS")
+        msgs=self._modem.checkSMS(request.deleteAfterRead)
+        resp=GPS_Service_pb2.receivedSMSList()
+        if resp == None :
+             resp.nbMessages=0
+             return resp
+
+        resp.nbMessages=len(msgs)
+        if resp.nbMessages > 0 :
+            for m in msgs:
+                msg=GPS_Service_pb2.receivedSMS()
+                msg.origin=m['origin']
+                msg.sms_time=m['sms_time']
+                msg.text=m['text']
+                resp.list.append(msg)
+        return resp
 
 
 class GPS_thread(threading.Thread) :

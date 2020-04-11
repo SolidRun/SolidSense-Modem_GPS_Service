@@ -71,6 +71,7 @@ class Modem_Service():
                     if roaming != None and roaming :
                         # print("allowing roaming")
                         self._modem.allowRoaming()
+                    self._modem.configureSMS()
                     init_done = True
 
                 # the SIM is ready so look in operatorsDB
@@ -267,6 +268,25 @@ class Modem_Service():
         self.close()
         return (resp_msg,resp_dict)
 
+    def sendSMS(self,da,text):
+        if self._modem.isRegistered() :
+            self.lockModem()
+            self.open()
+            res=self._modem.sendSMS(da,text)
+            self.close()
+            self.unlockModem()
+            return res
+
+    def checkSMS(self,delete):
+        if self._modem.isRegistered() :
+            self.lockModem()
+            self.open()
+            msgs=self._modem.checkAllSMS(delete)
+            self.close()
+            self.unlockModem()
+            return msgs
+        else:
+            return None
 
 def main():
     pass

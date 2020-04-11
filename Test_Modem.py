@@ -40,6 +40,19 @@ def rescan(modem):
     modem.sendATcommand('+QCFG=”nwscanmode”,0,1')
     modem.selectOperator('AUTO')
 
+def checkGPS(modem):
+    global log
+    if modem.gpsStatus() :
+        log.info("Reading GPS")
+        sg=modem.getGpsStatus()
+        if sg['fix'] :
+          pf="LAT {0} LONG {1}".format(sg['Latitude'],sg['Longitude'])
+          log.info(pf)
+        else:
+            log.info("GPS not fixed")
+    else:
+        log.infp("GPS is turned off")
+
 def main():
     global log
     log=logging.getLogger('Modem_GPS_Service')
@@ -72,7 +85,7 @@ def main():
     elif option == "cmd" :
         if len(sys.argv) >2 :
             log.info("sending:"+sys.argv[2])
-            resp=modem.sendATcommand(sys.argv[2],True)
+            resp=modem.sendATcommand(sys.argv[2],False)
             for r in resp:
                 log.info(r)
         else:
@@ -82,6 +95,8 @@ def main():
             rescan(modem)
     elif option == 'sms' :
         checkSMS(modem)
+    elif option == 'gps' :
+        checkGPS(modem)
     else:
         modem.allowRoaming()
 

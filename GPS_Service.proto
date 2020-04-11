@@ -48,7 +48,6 @@ enum PositionSpecDef {
 message ModemCmd {
 	string command=1;
 	}
-	
 
 message ModemStatus {
 	string model=1;
@@ -75,6 +74,29 @@ message ModemResp {
 	string response=2;
 	ModemStatus status = 3;
 	}
+	
+message SMS {
+	string destination=1;	// number (MSISDN) of the destination
+	string text=2;			// content. length lilimted to standard SMS lenght
+	}
+	
+message receivedSMS {
+	string origin=1;
+	string sms_time=2;
+	string text=3;
+	}
+
+message checkSMS {
+	bool deleteAfterRead=1;
+	}
+
+message receivedSMSList {
+	uint32 nbMessages=1;
+	repeated receivedSMS list =2;
+}
+	
+	
+	
 service GPS_Service {
 	rpc getPosition(PositionSpec) returns (GPS_Position) {}
 	rpc getVector(PositionSpec) returns (GPS_Vector) {}
@@ -82,5 +104,7 @@ service GPS_Service {
 	rpc streamGPS(ModemCmd) returns (stream GPS_Vector) {}
 	rpc stopStream(ModemCmd) returns (ModemResp) {}
 	rpc modemCommand(ModemCmd) returns(ModemResp){}
+	rpc sendSMS(SMS) returns (ModemResp) {}
+	rpc checkSMSCommand(checkSMS) returns (receivedSMSList) {}
 	}
 	

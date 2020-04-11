@@ -75,11 +75,7 @@ class QuectelModem():
     #
     # send AT command and return the responses
     #
-    def sendATcommand(self,param=None,raiseException=False):
-        buf="AT"
-        if param != None :
-            buf=buf+param
-        buf= buf +'\r'
+    def writeATBuffer(self,buf):
         # print buf
         if self._logAT :
             self.logATCommand(buf)
@@ -93,11 +89,13 @@ class QuectelModem():
                 self._logfp.write(err+"\n")
             raise ModemException(err)
 
+    def readATResponse(self,param,raiseException):
         readResp=True
         nbResp=0
         respList=list()
         while readResp:
             # reading one response
+            # self._tty.timeout=10.0
             try:
                 resp=self._tty.read_until().decode()
             except serial.serialutil.SerialException as err :
@@ -120,7 +118,7 @@ class QuectelModem():
                 readResp=False
                 if raiseException :
                     raise ModemException(param+" NO CARRIER")
-            elif cleanResp.startswith("+CME") :
+            elif cleanResp.startswith("+CME") or cleanResp.startswith("+CMS"):
                 readResp=False
                 modem_log.debug(cleanResp)
                 respList.append(cleanResp)
@@ -132,6 +130,14 @@ class QuectelModem():
                      nbResp=nbResp+1
         # print "Number of responses:",nbResp
         return respList
+
+    def sendATcommand(self,param=None,raiseException=False):
+        buf="AT"
+        if param != None :
+            buf=buf+param
+        buf= buf +'\r'
+        self.writeATBuffer(buf)
+        return self.readATResponse(param,raiseException)
 
     #
     # perform initialisation of the modem parameters
@@ -296,6 +302,8 @@ class QuectelModem():
             param = self.splitResponse(cmd,r,False)
             if param != None :
                 return param
+            else:
+                modem_log.debug("AT cmd="+cmd+"response:"+str(r))
         # nothing found
         modem_log.error("No AT response for:"+cmd)
         return None
@@ -624,7 +632,8 @@ class QuectelModem():
             network=str(plmn)
         return network
 
-
+    def isRegistered(self):
+        return self._isRegistered
 
     def logNetworkStatus(self):
         if not self._isRegistered :
@@ -730,7 +739,7 @@ class QuectelModem():
         status['NMEA_port2']=param[1]
         # read values
         # modem_log.debug("Reading GPS via AT")
-        resp=self.sendATcommand("+QGPSLOC=0")
+        resp=self.sendATcommand("+QGPSLOC=0",False)
         #print("GPS RESP=",resp)
         # check that we are fixed
         cmd=self.checkResponse(resp[0])
@@ -752,6 +761,9 @@ class QuectelModem():
             status["Time_UTC"]=param[0]
             status["Latitude"]=param[1]
             status['Longitude']=param[2]
+            status['hdop']=param[3]
+            status['Altitude']=param[4]
+            status['date']=param[9]
             status["nbsat" ]=param[10]
             status["SOG_KMH"]=param[8]
         return status
@@ -770,4 +782,86 @@ class QuectelModem():
         resp=self.sendATcommand("+QGPSCFG=\"outport\"")
         param=self.checkAndSplitResponse("+QGPSCFG",resp)
         return param[1]
+
+    '''
+
+    SMS related methods
+
+    '''
+
+    def configureSMS(self):
+        # store all messages in the module
+        self.sendATcommand('+CPMS="ME","ME","ME"')
+        self.sendATcommand("+CMGF=1")
+        self.sendATcommand('+CSCS="GSM"')
+
+
+    def sendSMS(self,da,text):
+        buf='AT+CMGS='+'\"'+da+'\"\r'
+        # print(buf)
+        self.writeATBuffer(buf)
+        # read the first response
+        resp=self._tty.read_until()
+        prompt=self._tty.read(1)
+        # print("Prompt received:",prompt[0])
+        if prompt[0] != 62 :
+            resp[0]=prompt[0]
+            buf=self._tty.read_until()
+            resp=(resp.append(buf)).decode()
+            resp=resp.strip('\r\n')
+            modem_log.error("Error sending SMS:"+resp)
+            return "SEND ERROR"
+        else:
+            buf2= text+'\x1a'
+            # print(buf2)
+            self.writeATBuffer(buf2)
+            resp=self.readATResponse("+CMGS",False)
+            # print(resp)
+            if resp != None :
+
+                result=self.checkResponse(resp[1])
+                if result.startswith("+CMS") :
+                    error=self.splitResponse("+CMS ERROR",resp[1])
+                    modem_log.error("Error sending SMS:"+str(error[0])+" to:"+da)
+                    return resp[1]
+                else:
+                    modem_log.info("SMS sent to:"+da)
+                    return "OK"
+
+    def readSMS(self,stat):
+        cmd='+CMGL="%s"' % stat
+        resp=self.sendATcommand(cmd)
+        messages=[]
+        for r in resp :
+            if r.startswith('+CMGL') :
+                msg={}
+                msg_part=self.splitResponse('+CMGL',r)
+                msg['index']=msg_part[0]
+                msg['status']=msg_part[1]
+                msg['origin']=msg_part[2]
+                msg['sms_time']=msg_part[4]
+                # modem_log.debug("Message received from:"+msg_part[2])
+            else:
+                r=r.strip('\r\n')
+                msg['text']=r
+                # modem_log.debug("Content:"+r)
+                messages.append(msg)
+        modem_log.info("Number of SMS collected:"+str(len(messages)))
+        return messages
+
+    def checkReceivedSMS(self):
+        # read messages
+        modem_log.debug("Reading unread SMS from modem")
+        return self.readSMS('REC UNREAD')
+
+    def checkAllSMS(self,delete=False):
+        modem_log.debug("Reading all SMS from modem")
+        msgs=self.readSMS('ALL')
+        if delete :
+            self.sendATcommand('+CMGD=1,1')
+        return msgs
+
+
+
+
 

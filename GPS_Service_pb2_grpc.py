@@ -44,6 +44,16 @@ class GPS_ServiceStub(object):
         request_serializer=GPS__Service__pb2.ModemCmd.SerializeToString,
         response_deserializer=GPS__Service__pb2.ModemResp.FromString,
         )
+    self.sendSMS = channel.unary_unary(
+        '/GPS_Service/sendSMS',
+        request_serializer=GPS__Service__pb2.SMS.SerializeToString,
+        response_deserializer=GPS__Service__pb2.ModemResp.FromString,
+        )
+    self.checkSMSCommand = channel.unary_unary(
+        '/GPS_Service/checkSMSCommand',
+        request_serializer=GPS__Service__pb2.checkSMS.SerializeToString,
+        response_deserializer=GPS__Service__pb2.receivedSMSList.FromString,
+        )
 
 
 class GPS_ServiceServicer(object):
@@ -92,6 +102,20 @@ class GPS_ServiceServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def sendSMS(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def checkSMSCommand(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_GPS_ServiceServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -124,6 +148,16 @@ def add_GPS_ServiceServicer_to_server(servicer, server):
           servicer.modemCommand,
           request_deserializer=GPS__Service__pb2.ModemCmd.FromString,
           response_serializer=GPS__Service__pb2.ModemResp.SerializeToString,
+      ),
+      'sendSMS': grpc.unary_unary_rpc_method_handler(
+          servicer.sendSMS,
+          request_deserializer=GPS__Service__pb2.SMS.FromString,
+          response_serializer=GPS__Service__pb2.ModemResp.SerializeToString,
+      ),
+      'checkSMSCommand': grpc.unary_unary_rpc_method_handler(
+          servicer.checkSMSCommand,
+          request_deserializer=GPS__Service__pb2.checkSMS.FromString,
+          response_serializer=GPS__Service__pb2.receivedSMSList.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
