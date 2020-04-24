@@ -15,6 +15,8 @@ import pynmea2
 import serial
 import logging
 
+import Modem_GPS_Parameters
+
 gps_serv_log=None
 
 class GPS_Reader():
@@ -35,6 +37,10 @@ class GPS_Reader():
             raise
         self._reader=pynmea2.NMEAStreamReader(self._tty,'raise')
         self._ready=True
+        if Modem_GPS_Parameters.getparam("speed_unit") == "kmh" :
+            self._convert_speed = True
+        else:
+            self._convert_speed = False
         logging.info('GPS SERVICE: NMEA INTERFACE '+tty+' READY')
 
 
@@ -116,7 +122,11 @@ class GPS_Reader():
 
                         self._data['date']=msg.datestamp.strftime("%d/%m/%y")
                         if msg_rmc.spd_over_grnd != None :
-                            self._data['SOG']= msg_rmc.spd_over_grnd
+                            if self._convert_speed :
+                                speed= msg_rmc.spd_over_grnd * 1.852
+                            else:
+                                speed = msg_rmc.spd_over_grnd
+                            self._data['SOG']= speed
                         else:
                             self._data['SOG']=0.0
                         self._data['COG'] = msg_rmc.true_course

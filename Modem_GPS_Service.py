@@ -353,7 +353,7 @@ class GPS_Servicer(GPS_Service_pb2_grpc.GPS_ServiceServicer) :
             if self.stop_flag :
                 # empty the queue
                 # to be done
-                gps_log.debug("Stop GPS streaing flag detected")
+                gps_log.debug("Stop GPS streaming flag detected")
                 while not gps_queue.empty() :
                     pos=gps_queue.get()
                     yield pos
@@ -453,6 +453,9 @@ class GPS_Service_Synchro() :
         self._timer=time.time()
         self._state=0
         self._stopThread=False
+        self._time_window=getparam('time_window')
+        if self._time_window == None :
+            self._time_window = 5.0
 
 
     def stop(self):
@@ -486,7 +489,7 @@ class GPS_Service_Synchro() :
         return self._stopThread
 
     def checkTimer(self):
-        if time.time() - self._timer > 10.:
+        if time.time() - self._timer > self._time_window:
             self.stop()
 
     def setStopThread(self):

@@ -59,6 +59,8 @@ def default_param():
     out['timer']=300.
     out["nb_retry"]=5
     out["log_at"]=False
+    out["speed_unit"]="kmh"
+    out['time_window']=5.0
 
     modem_gps_parameters=out
 
