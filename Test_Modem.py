@@ -72,6 +72,7 @@ def main():
     option="None"
     if len(sys.argv) > 1 :
         option=sys.argv[1]
+        log.info("Test Option:"+option)
 
     if modem.SIM_Status() == "SIM PIN":
         modem.setpin('0000')
@@ -93,6 +94,16 @@ def main():
     elif option == "scan" :
         if modem.SIM_Ready():
             rescan(modem)
+    elif option == "oper" :
+        if len(sys.argv) > 2 :
+            log.info("selecting operator:"+sys.argv[2])
+            if sys.argv[2].isdecimal() :
+                f="numeric"
+            else:
+                f='long'
+            modem.selectOperator(sys.argv[2],f,None)
+        else:
+            log.info("Missing operator name or ID")
     elif option == 'sms' :
         checkSMS(modem)
     elif option == 'gps' :

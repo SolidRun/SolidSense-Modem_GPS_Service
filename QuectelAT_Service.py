@@ -575,7 +575,7 @@ class QuectelModem():
             r=int(fields[4][:ip])
             try:
                 # print (o,":",access[a],"PLMN:",self.decodePLMN(p)," AT:",rat[r])
-                res = "%s: %s - PLMN: %s - RAT: %s" % (o,access[a],str(self.decodePLMN(p)),rat[r])
+                res = "%s: %s - PLMN %d/%s - RAT: %s" % (o,access[a],p,str(self.decodePLMN(p)),rat[r])
                 modem_log.info(res)
                 result += res + '\n'
             except KeyError :

@@ -140,7 +140,8 @@ if [ ${TEST_MODEM} -eq 0 ]; then
 			usage
 			exit 1
 		fi
-		python3 ${MDM_DIR}/Test_Modem.py "${PARAMS}"
+		echo "Test additional parameters:${PARAMS}"
+		python3 ${MDM_DIR}/Test_Modem.py ${PARAMS}
 	fi
 
 	echo "To restart the restart if test is ok: sudo systemctl start modem_gps"
