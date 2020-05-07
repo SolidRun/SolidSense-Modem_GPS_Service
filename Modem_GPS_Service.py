@@ -242,6 +242,12 @@ class GPS_ServiceReader(GPS_Reader) :
                 return
             object.__setattr__(result,d[0],v)
 
+    def continuousMode(self):
+        if self._continuous :
+            return (True,self._queue)
+        else:
+            return (False,None)
+
 
 class GPS_nmea_simulator(GPS_Reader) :
 
@@ -342,12 +348,18 @@ class GPS_Servicer(GPS_Service_pb2_grpc.GPS_ServiceServicer) :
             gps_log.error("GPS service: Error decoding streaming parameters")
             cmd={}
 
-        # create the queue
-        gps_queue=queue.Queue(20)
-        self._synchro.setGPSContinuous()
-        self.stop_flag=False
-        self._reader.setContinuous(gps_queue,cmd)
-        self._synchro.startContinuous()
+        mode, active_queue = self._reader.continuousMode()
+        if mode :
+            gps_log.debug("GPS SERVICE STREAM READING => CONTINUE")
+            gps_queue = active_queue
+        else:
+            # create the queue and put the GPS in continuous mode
+            gps_log.debug("GPS SERVICE STREAM READING => START CONTINUOUS MODE")
+            gps_queue=queue.Queue(20)
+            self._synchro.setGPSContinuous()
+            self.stop_flag=False
+            self._reader.setContinuous(gps_queue,cmd)
+            self._synchro.startContinuous()
         while True:
 
             if self.stop_flag :
