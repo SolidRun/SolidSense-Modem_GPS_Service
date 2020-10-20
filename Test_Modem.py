@@ -58,6 +58,7 @@ def main():
     log=logging.getLogger('Modem_GPS_Service')
     log.addHandler(logging.StreamHandler())
     log.setLevel(logging.DEBUG)
+    QuectelModem.checkModemPresence()
     try:
         modem=QuectelModem('/dev/ttyUSB2',True)
     except Exception as err:
