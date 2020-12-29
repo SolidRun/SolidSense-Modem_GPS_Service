@@ -65,13 +65,7 @@ class QuectelModem():
 
     @staticmethod
     def checkModemPresence():
-        mdm = findUsbModem('Quectel')
-        if mdm :
-            print (mdm)
-            return True
-        return False
-
-
+        return findUsbModem('Quectel')
 
     def __init__(self,ifName,log=False,init=True):
         global modem_log
