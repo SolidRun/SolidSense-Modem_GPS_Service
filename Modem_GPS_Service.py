@@ -33,11 +33,11 @@ modem_gps_version="2.0.0"
 grpc_server=None
 exit_flag= -1
 
+
 class GPS_data():
 
     position_fields=(('longitude',float),('latitude',float),('gps_time',str))
     vector_fields =(('longitude',float),('latitude',float),('gps_time',str),('altitude',float),('COG',float),('SOG',float))
-
 
     def __init__(self):
         self._lock= threading.Lock()
@@ -123,8 +123,7 @@ def dictToResult(dict_resp,res) :
             print(attr,"=",val,type(val))
 
 
-
-class GPS_ServiceReader(GPS_Reader) :
+class GPS_ServiceReader(GPS_Reader):
 
     def __init__(self,data_block,synchro_block) :
 
@@ -150,7 +149,6 @@ class GPS_ServiceReader(GPS_Reader) :
             if self._synchro.stopThread() :
                 gps_log.info("GPS Thread Stop request received")
                 break   # stop the thread
-
 
     def setContinuous(self,send_queue,rules):
         gps_log.debug("GPS Reader set in continuous mode param:"+str(rules))
@@ -194,7 +192,6 @@ class GPS_ServiceReader(GPS_Reader) :
             self._synchro.stop()
         return result
 
-
     def runContinuous(self):
 
         self.readNMEAFrame()
@@ -224,7 +221,6 @@ class GPS_ServiceReader(GPS_Reader) :
             self._result.setData(self._data)
             self._reportime=t
 
-
     def runOnce(self):
         self.flush()
         self.readNMEAFrame()
@@ -249,7 +245,7 @@ class GPS_ServiceReader(GPS_Reader) :
             return (False,None)
 
 
-class GPS_nmea_simulator(GPS_Reader) :
+class GPS_nmea_simulator(GPS_Reader):
 
     def __init__(self,file,result):
          # first check that the GPS is turned on
@@ -278,7 +274,6 @@ class GPS_nmea_simulator(GPS_Reader) :
                 exit()
 
 
-
 class GPS_Servicer(GPS_Service_pb2_grpc.GPS_ServiceServicer) :
 
     def __init__(self,gps_data,synchro,modem,reader):
@@ -287,8 +282,6 @@ class GPS_Servicer(GPS_Service_pb2_grpc.GPS_ServiceServicer) :
         self._frameID=0
         self._modem=modem
         self._reader=reader
-
-
 
     def getPosition(self,request,context):
         gps_log.debug('GPS SERVICE GET POSITION REQUEST')
@@ -335,7 +328,6 @@ class GPS_Servicer(GPS_Service_pb2_grpc.GPS_ServiceServicer) :
                 self._synchro.setStopThread()
                 grpc_server.stop()
                 exit_flag=2
-
 
         gps_log.debug('MODEM COMMAND SERVICE RESPONSE:'+resp.response)
         return resp
@@ -401,7 +393,7 @@ class GPS_Servicer(GPS_Service_pb2_grpc.GPS_ServiceServicer) :
         gps_log.debug("MODEM SERVICE CHECK SMS")
         msgs=self._modem.checkSMS(request.deleteAfterRead)
         resp=GPS_Service_pb2.receivedSMSList()
-        if resp == None :
+        if resp is None:
              resp.nbMessages=0
              return resp
 
@@ -458,7 +450,6 @@ class GPS_Service_Server():
 
 class GPS_Service_Synchro() :
 
-
     def __init__(self):
         self._go_GPS=threading.Event()
         self._waitGPS= threading.Event()
@@ -466,7 +457,7 @@ class GPS_Service_Synchro() :
         self._state=0
         self._stopThread=False
         self._time_window=getparam('time_window')
-        if self._time_window == None :
+        if self._time_window is None :
             self._time_window = 5.0
 
 
@@ -586,7 +577,7 @@ def main():
 
     OkModem()
     # check if we have someting else to do
-    if getparam('start_gps_service') == False:
+    if not getparam('start_gps_service'):
         # check if we need to start the GPS anyway
         if getparam('gps_start'):
             ms.startGPS()
@@ -624,8 +615,6 @@ def main():
     nmea_thread.join()
     gps_log.info("GPS SERVICE EXITING WITH CODE:"+str(exit_flag))
     exit(exit_flag)
-
-
 
 
 if __name__ == '__main__':

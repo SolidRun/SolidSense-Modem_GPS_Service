@@ -26,6 +26,7 @@ test_counter=0
 class ModemException(Exception) :
     pass
 
+
 def findUsbModem(mfg):
     '''
     Look on the USB system and detect the modem from the manufacturer
@@ -60,6 +61,7 @@ def findUsbModem(mfg):
     else:
         local_log.error('No '+mfg+' modem found')
         return None
+
 
 class QuectelModem():
 
@@ -244,13 +246,16 @@ class QuectelModem():
 
     def SIM_Ready(self):
         return self._SIM and self._SIM_STATUS == "READY"
+
     def SIM_Present(self):
         return self._SIM
+
     def SIM_Status(self):
         if self._SIM :
             return self._SIM_STATUS
         else:
             return "NO SIM"
+
     def IMEI(self):
         return self._IMEI
     def IMSI(self):
@@ -305,7 +310,6 @@ class QuectelModem():
             return None
         st=len(cmd)+2 # one for colon + one for space
         toSplit=resp[st:]
-        #print toSplit
         param=list()
         for s in toSplit.split(',')  :
             # check if we have double quote
@@ -523,9 +527,8 @@ class QuectelModem():
         return True
     """
 
-
     def readOperatorNames(self,fileName):
-        if self._operatorNames != None :
+        if self._operatorNames is not None :
             # already in memory
             return True
         if os.path.exists(fileName) :
@@ -555,8 +558,7 @@ class QuectelModem():
         else:
             return False
 
-
-    def saveOperatorNames(self,fileName)  :
+    def saveOperatorNames(self, fileName):
         # print("saving operators DB")
         if not self.SIM_Ready() :
             return
@@ -621,8 +623,6 @@ class QuectelModem():
                 continue
         return result
 
-
-
     def selectOperator(self,operator,name_format='long',rat=None):
         '''
         select an operator => automatic if failed
@@ -633,18 +633,18 @@ class QuectelModem():
             operator = self._networkName
             name_format='long'
 
-        if operator == 'AUTO' :
+        if operator == 'AUTO':
             cmd = "+COPS=0"
         else:
-            if name_format == 'long' :
+            if name_format == 'long':
                 cmd="+COPS=1,0,%s" % operator
             else:
                 cmd="+COPS=1,2,%s" % str(operator)
-            if rat != None :
+            if rat is not None :
                 rat_idx=rat_index.get(rat,None)
             else:
                 rat_idx=None
-            if rat_idx != None:
+            if rat_idx is not None:
                 cmd += ","+str(rat_idx)
         try:
             modem_log.debug("Select operator CMD: "+cmd)
@@ -660,7 +660,7 @@ class QuectelModem():
             plmn = "%d" % plmnid
         else:
             plmn=plmnid
-        if self._operatorNames != None :
+        if self._operatorNames is not None :
             # print "PLMN number:",plmnid
             try:
                 network=self._operatorNames[plmn]
@@ -692,9 +692,7 @@ class QuectelModem():
             modem_log.info ("NO SIM Inserted"  )
 
     def modemStatus(self,showOperators=False):
-        out={}
-        out['model']= self._model+" "+self._rev
-        out['IMEI']= self.IMEI ()
+        out = {'model': self._model + " " + self._rev, 'IMEI': self.IMEI()}
         if self.gpsStatus() :
             out['gps_on']=True
         else:
@@ -722,11 +720,10 @@ class QuectelModem():
                     out['operators'] = self.visibleOperators()
 
         return out
-
-
     #
     # perform a modem reset
     #
+
     def resetCard(self):
         modem_log.info ("TURNING RADIO OFF AND ON")
         modem_log.debug("Going to flight mode")
@@ -793,7 +790,7 @@ class QuectelModem():
         # now we shall have a valid GPS signal
 
         param=self.checkAndSplitResponse("+QGPSLOC",resp)
-        if param == None :
+        if param is None:
             status['fix'] = False
         else:
             status['fix'] = True
@@ -809,10 +806,10 @@ class QuectelModem():
 
     def gpsStatus(self):
         resp=self.sendATcommand("+QGPS?")
-        param=self.checkAndSplitResponse("+QGPS",resp)
-        if param == None :
+        param=self.checkAndSplitResponse("+QGPS", resp)
+        if param is None:
             return False
-        if param[0] == 0 :
+        if param[0] == 0:
             return False
         else:
             return True
@@ -833,7 +830,6 @@ class QuectelModem():
         self.sendATcommand('+CPMS="ME","ME","ME"')
         self.sendATcommand("+CMGF=1")
         self.sendATcommand('+CSCS="GSM"')
-
 
     def sendSMS(self,da,text):
         buf='AT+CMGS='+'\"'+da+'\"\r'
