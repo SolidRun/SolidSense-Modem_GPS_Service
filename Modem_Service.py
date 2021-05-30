@@ -71,6 +71,7 @@ class Modem_Service():
                     if roaming != None and roaming :
                         # print("allowing roaming")
                         self._modem.allowRoaming()
+                    self._modem.configureSMS()
                     init_done = True
 
                 # the SIM is ready so look in operatorsDB
@@ -226,26 +227,28 @@ class Modem_Service():
             mdm_serv_log.debug("command status begins")
             self.open()
             showOp=False
-            if self._modem.networkStatus() :
-
-                if cmd == 'operator':
-                    if len(cmdt) > 1 :
-                        # here we try to set the operator
-                        if len(cmdt) > 2 :
-                            rat=cmdt[2]
-                        else:
-                            rat=None
-                        if cmdt[1].isdecimal():
-                            f='numeric'
-                        else:
-                            f='long'
-
-                        self._modem.selectOperator(cmdt[1],name_format=f,rat=rat)
+            # if self._modem.networkStatus() :
+            # operator command must be executed even if the modem is not attached
+            if cmd == 'operator':
+                if len(cmdt) > 1 :
+                    # here we try to set the operator
+                    if len(cmdt) > 2 :
+                        rat=cmdt[2]
                     else:
-                        showOp=True
+                        rat=None
+                    if cmdt[1].isdecimal():
+                        f='numeric'
+                    else:
+                        f='long'
+
+                    self._modem.selectOperator(cmdt[1],name_format=f,rat=rat)
+                else:
+                    showOp=True
+            '''
             else:
                 if cmd == 'operator':
                     showOp = True # in all case we can show operators
+            '''
 
             # print("#################",showOp)
             resp_dict=self._modem.modemStatus(showOp)
@@ -267,6 +270,25 @@ class Modem_Service():
         self.close()
         return (resp_msg,resp_dict)
 
+    def sendSMS(self,da,text):
+        if self._modem.isRegistered() :
+            self.lockModem()
+            self.open()
+            res=self._modem.sendSMS(da,text)
+            self.close()
+            self.unlockModem()
+            return res
+
+    def checkSMS(self,delete):
+        if self._modem.isRegistered() :
+            self.lockModem()
+            self.open()
+            msgs=self._modem.checkAllSMS(delete)
+            self.close()
+            self.unlockModem()
+            return msgs
+        else:
+            return None
 
 def main():
     pass

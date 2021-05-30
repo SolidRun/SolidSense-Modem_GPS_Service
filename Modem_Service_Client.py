@@ -83,7 +83,7 @@ def main():
             resp=gps.getGPSPrecision()
             # print("Receive frame=",resp.frameID)
             if resp.fix :
-                print("GPS FIXED date:",resp.date, "time:",resp.timestamp)
+                print("GPS FIXED date:",resp.date, "time:",resp.gps_time)
                 resp=gps.getGPSVector()
                 print("LAT:",resp.latitude,"LONG:",resp.longitude,"SOG:",resp.SOG,"COG:",resp.COG)
             else:

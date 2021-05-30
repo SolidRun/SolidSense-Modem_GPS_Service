@@ -17,6 +17,7 @@ from QuectelAT_Service import *
 
 log=None
 
+
 def checkSMS(modem):
     global log
     resp=modem.sendATcommand("+CSMS?")
@@ -34,17 +35,34 @@ def init(modem):
     modem.allowRoaming()
     modem.logModemStatus()
 
+
 def rescan(modem):
     global log
     log.info("Resetting network scan mode")
     modem.sendATcommand('+QCFG=”nwscanmode”,0,1')
     modem.selectOperator('AUTO')
 
+
+def checkGPS(modem):
+    global log
+    if modem.gpsStatus() :
+        log.info("Reading GPS")
+        sg=modem.getGpsStatus()
+        if sg['fix'] :
+          pf="LAT {0} LONG {1}".format(sg['Latitude'],sg['Longitude'])
+          log.info(pf)
+        else:
+            log.info("GPS not fixed")
+    else:
+        log.infp("GPS is turned off")
+
+
 def main():
     global log
     log=logging.getLogger('Modem_GPS_Service')
     log.addHandler(logging.StreamHandler())
     log.setLevel(logging.DEBUG)
+    QuectelModem.checkModemPresence()
     try:
         modem=QuectelModem('/dev/ttyUSB2',True)
     except Exception as err:
@@ -59,6 +77,7 @@ def main():
     option="None"
     if len(sys.argv) > 1 :
         option=sys.argv[1]
+        log.info("Test Option:"+option)
 
     if modem.SIM_Status() == "SIM PIN":
         modem.setpin('0000')
@@ -67,24 +86,35 @@ def main():
 
     modem.logModemStatus()
 
-    if option == "init" :
+    if option == "init":
         init(modem)
-    elif option == "cmd" :
+    elif option == "cmd":
         if len(sys.argv) >2 :
             log.info("sending:"+sys.argv[2])
-            resp=modem.sendATcommand(sys.argv[2],True)
+            resp=modem.sendATcommand(sys.argv[2],False)
             for r in resp:
                 log.info(r)
         else:
             log.info("Missing command argument")
-    elif option == "scan" :
+    elif option == "scan":
         if modem.SIM_Ready():
             rescan(modem)
-    elif option == 'sms' :
+    elif option == "oper":
+        if len(sys.argv) > 2:
+            log.info("selecting operator:"+sys.argv[2])
+            if sys.argv[2].isdecimal():
+                f="numeric"
+            else:
+                f='long'
+            modem.selectOperator(sys.argv[2],f,None)
+        else:
+            log.info("Missing operator name or ID")
+    elif option == 'sms':
         checkSMS(modem)
+    elif option == 'gps':
+        checkGPS(modem)
     else:
         modem.allowRoaming()
-
 
     if modem.SIM_Ready():
         # we have a SIM so look how it goaes
@@ -95,14 +125,14 @@ def main():
             # let's see what is the situation
             state=modem.regStatus()
             log.info("Modem registration status:"+state)
-            if state == "IN PROGRESS" :
+            if state == "IN PROGRESS":
                 # just wait
                 log.info("Registration in progress => waiting")
                 nb_attempt=0
-                while nb_attempt < 10 :
+                while nb_attempt < 10:
                     time.sleep(2.0)
                     res=modem.networkStatus()
-                    if res : break
+                    if res: break
                     nb_attempt += 1
             if not res and option == 'list':
                 log.info(modem.visibleOperators())

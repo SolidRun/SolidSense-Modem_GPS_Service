@@ -16,6 +16,7 @@ import time
 import json
 import datetime
 import logging
+import subprocess
 
 
 modem_log=None
@@ -25,8 +26,48 @@ test_counter=0
 class ModemException(Exception) :
     pass
 
+
+def findUsbModem(mfg):
+    '''
+    Look on the USB system and detect the modem from the manufacturer
+    '''
+    local_log= logging.getLogger('Modem_GPS_Service')
+    r=subprocess.run('lsusb',capture_output=True)
+    lines=r.stdout.decode('utf-8').split('\n')
+    found_modem=False
+    for line in lines :
+        if len(line) > 0 :
+            # print(line)
+            if line.find(mfg)  > 0 :
+                t=line.split(' ')
+                bus=int(t[1])
+                dev=int(t[3].rstrip(':'))
+                ids=t[5].split(':')
+                found_modem=True
+                break
+    if found_modem :
+        out={}
+        # check the device path
+        r=subprocess.run("ls /sys/bus/usb/drivers/option/ | head -n1 | cut -f1 -d':'",capture_output=True,shell=True)
+        dev_path=r.stdout.decode('utf-8').rstrip('\n')
+        local_log.info("Found "+mfg+" modem on USB bus "+str(bus)+" device "+str(dev)+' Device path:'+dev_path)
+        out['bus']=bus
+        out['dev'] = dev
+        out['mfgid']=ids[0]
+        out['modelid'] = ids[1]
+        out['dev_path'] = dev_path
+        # local_log.debug("Modem found:"+str(out))
+        return out
+    else:
+        local_log.error('No '+mfg+' modem found')
+        return None
+
+
 class QuectelModem():
 
+    @staticmethod
+    def checkModemPresence():
+        return findUsbModem('Quectel')
 
     def __init__(self,ifName,log=False,init=True):
         global modem_log
@@ -75,11 +116,7 @@ class QuectelModem():
     #
     # send AT command and return the responses
     #
-    def sendATcommand(self,param=None,raiseException=False):
-        buf="AT"
-        if param != None :
-            buf=buf+param
-        buf= buf +'\r'
+    def writeATBuffer(self,buf):
         # print buf
         if self._logAT :
             self.logATCommand(buf)
@@ -93,11 +130,13 @@ class QuectelModem():
                 self._logfp.write(err+"\n")
             raise ModemException(err)
 
+    def readATResponse(self,param,raiseException):
         readResp=True
         nbResp=0
         respList=list()
         while readResp:
             # reading one response
+            # self._tty.timeout=10.0
             try:
                 resp=self._tty.read_until().decode()
             except serial.serialutil.SerialException as err :
@@ -120,7 +159,7 @@ class QuectelModem():
                 readResp=False
                 if raiseException :
                     raise ModemException(param+" NO CARRIER")
-            elif cleanResp.startswith("+CME") :
+            elif cleanResp.startswith("+CME") or cleanResp.startswith("+CMS"):
                 readResp=False
                 modem_log.debug(cleanResp)
                 respList.append(cleanResp)
@@ -132,6 +171,14 @@ class QuectelModem():
                      nbResp=nbResp+1
         # print "Number of responses:",nbResp
         return respList
+
+    def sendATcommand(self,param=None,raiseException=False):
+        buf="AT"
+        if param != None :
+            buf=buf+param
+        buf= buf +'\r'
+        self.writeATBuffer(buf)
+        return self.readATResponse(param,raiseException)
 
     #
     # perform initialisation of the modem parameters
@@ -199,13 +246,16 @@ class QuectelModem():
 
     def SIM_Ready(self):
         return self._SIM and self._SIM_STATUS == "READY"
+
     def SIM_Present(self):
         return self._SIM
+
     def SIM_Status(self):
         if self._SIM :
             return self._SIM_STATUS
         else:
             return "NO SIM"
+
     def IMEI(self):
         return self._IMEI
     def IMSI(self):
@@ -260,7 +310,6 @@ class QuectelModem():
             return None
         st=len(cmd)+2 # one for colon + one for space
         toSplit=resp[st:]
-        #print toSplit
         param=list()
         for s in toSplit.split(',')  :
             # check if we have double quote
@@ -296,6 +345,8 @@ class QuectelModem():
             param = self.splitResponse(cmd,r,False)
             if param != None :
                 return param
+            else:
+                modem_log.debug("AT cmd="+cmd+"response:"+str(r))
         # nothing found
         modem_log.error("No AT response for:"+cmd)
         return None
@@ -476,9 +527,8 @@ class QuectelModem():
         return True
     """
 
-
     def readOperatorNames(self,fileName):
-        if self._operatorNames != None :
+        if self._operatorNames is not None :
             # already in memory
             return True
         if os.path.exists(fileName) :
@@ -508,8 +558,7 @@ class QuectelModem():
         else:
             return False
 
-
-    def saveOperatorNames(self,fileName)  :
+    def saveOperatorNames(self, fileName):
         # print("saving operators DB")
         if not self.SIM_Ready() :
             return
@@ -567,14 +616,12 @@ class QuectelModem():
             r=int(fields[4][:ip])
             try:
                 # print (o,":",access[a],"PLMN:",self.decodePLMN(p)," AT:",rat[r])
-                res = "%s: %s - PLMN: %s - RAT: %s" % (o,access[a],str(self.decodePLMN(p)),rat[r])
+                res = "%s: %s - PLMN %d/%s - RAT: %s" % (o,access[a],p,str(self.decodePLMN(p)),rat[r])
                 modem_log.info(res)
                 result += res + '\n'
             except KeyError :
                 continue
         return result
-
-
 
     def selectOperator(self,operator,name_format='long',rat=None):
         '''
@@ -586,18 +633,18 @@ class QuectelModem():
             operator = self._networkName
             name_format='long'
 
-        if operator == 'AUTO' :
+        if operator == 'AUTO':
             cmd = "+COPS=0"
         else:
-            if name_format == 'long' :
+            if name_format == 'long':
                 cmd="+COPS=1,0,%s" % operator
             else:
                 cmd="+COPS=1,2,%s" % str(operator)
-            if rat != None :
+            if rat is not None :
                 rat_idx=rat_index.get(rat,None)
             else:
                 rat_idx=None
-            if rat_idx != None:
+            if rat_idx is not None:
                 cmd += ","+str(rat_idx)
         try:
             modem_log.debug("Select operator CMD: "+cmd)
@@ -613,7 +660,7 @@ class QuectelModem():
             plmn = "%d" % plmnid
         else:
             plmn=plmnid
-        if self._operatorNames != None :
+        if self._operatorNames is not None :
             # print "PLMN number:",plmnid
             try:
                 network=self._operatorNames[plmn]
@@ -624,7 +671,8 @@ class QuectelModem():
             network=str(plmn)
         return network
 
-
+    def isRegistered(self):
+        return self._isRegistered
 
     def logNetworkStatus(self):
         if not self._isRegistered :
@@ -644,9 +692,7 @@ class QuectelModem():
             modem_log.info ("NO SIM Inserted"  )
 
     def modemStatus(self,showOperators=False):
-        out={}
-        out['model']= self._model+" "+self._rev
-        out['IMEI']= self.IMEI ()
+        out = {'model': self._model + " " + self._rev, 'IMEI': self.IMEI()}
         if self.gpsStatus() :
             out['gps_on']=True
         else:
@@ -674,11 +720,10 @@ class QuectelModem():
                     out['operators'] = self.visibleOperators()
 
         return out
-
-
     #
     # perform a modem reset
     #
+
     def resetCard(self):
         modem_log.info ("TURNING RADIO OFF AND ON")
         modem_log.debug("Going to flight mode")
@@ -730,7 +775,7 @@ class QuectelModem():
         status['NMEA_port2']=param[1]
         # read values
         # modem_log.debug("Reading GPS via AT")
-        resp=self.sendATcommand("+QGPSLOC=0")
+        resp=self.sendATcommand("+QGPSLOC=0",False)
         #print("GPS RESP=",resp)
         # check that we are fixed
         cmd=self.checkResponse(resp[0])
@@ -745,23 +790,26 @@ class QuectelModem():
         # now we shall have a valid GPS signal
 
         param=self.checkAndSplitResponse("+QGPSLOC",resp)
-        if param == None :
+        if param is None:
             status['fix'] = False
         else:
             status['fix'] = True
             status["Time_UTC"]=param[0]
             status["Latitude"]=param[1]
             status['Longitude']=param[2]
+            status['hdop']=param[3]
+            status['Altitude']=param[4]
+            status['date']=param[9]
             status["nbsat" ]=param[10]
             status["SOG_KMH"]=param[8]
         return status
 
     def gpsStatus(self):
         resp=self.sendATcommand("+QGPS?")
-        param=self.checkAndSplitResponse("+QGPS",resp)
-        if param == None :
+        param=self.checkAndSplitResponse("+QGPS", resp)
+        if param is None:
             return False
-        if param[0] == 0 :
+        if param[0] == 0:
             return False
         else:
             return True
@@ -770,4 +818,85 @@ class QuectelModem():
         resp=self.sendATcommand("+QGPSCFG=\"outport\"")
         param=self.checkAndSplitResponse("+QGPSCFG",resp)
         return param[1]
+
+    '''
+
+    SMS related methods
+
+    '''
+
+    def configureSMS(self):
+        # store all messages in the module
+        self.sendATcommand('+CPMS="ME","ME","ME"')
+        self.sendATcommand("+CMGF=1")
+        self.sendATcommand('+CSCS="GSM"')
+
+    def sendSMS(self,da,text):
+        buf='AT+CMGS='+'\"'+da+'\"\r'
+        # print(buf)
+        self.writeATBuffer(buf)
+        # read the first response
+        resp=self._tty.read_until()
+        prompt=self._tty.read(1)
+        # print("Prompt received:",prompt[0])
+        if prompt[0] != 62 :
+            resp[0]=prompt[0]
+            buf=self._tty.read_until()
+            resp=(resp.append(buf)).decode()
+            resp=resp.strip('\r\n')
+            modem_log.error("Error sending SMS:"+resp)
+            return "SEND ERROR"
+        else:
+            buf2= text+'\x1a'
+            # print(buf2)
+            self.writeATBuffer(buf2)
+            resp=self.readATResponse("+CMGS",False)
+            # print(resp)
+            if resp != None :
+
+                result=self.checkResponse(resp[1])
+                if result.startswith("+CMS") :
+                    error=self.splitResponse("+CMS ERROR",resp[1])
+                    modem_log.error("Error sending SMS:"+str(error[0])+" to:"+da)
+                    return resp[1]
+                else:
+                    modem_log.info("SMS sent to:"+da)
+                    return "OK"
+
+    def readSMS(self,stat):
+        cmd='+CMGL="%s"' % stat
+        resp=self.sendATcommand(cmd)
+        messages=[]
+        for r in resp :
+            if r.startswith('+CMGL') :
+                msg={}
+                msg_part=self.splitResponse('+CMGL',r)
+                msg['index']=msg_part[0]
+                msg['status']=msg_part[1]
+                msg['origin']=msg_part[2]
+                msg['sms_time']=msg_part[4]
+                # modem_log.debug("Message received from:"+msg_part[2])
+            else:
+                r=r.strip('\r\n')
+                msg['text']=r
+                # modem_log.debug("Content:"+r)
+                messages.append(msg)
+        modem_log.info("Number of SMS collected:"+str(len(messages)))
+        return messages
+
+    def checkReceivedSMS(self):
+        # read messages
+        modem_log.debug("Reading unread SMS from modem")
+        return self.readSMS('REC UNREAD')
+
+    def checkAllSMS(self,delete=False):
+        modem_log.debug("Reading all SMS from modem")
+        msgs=self.readSMS('ALL')
+        if delete :
+            self.sendATcommand('+CMGD=1,1')
+        return msgs
+
+
+
+
 
