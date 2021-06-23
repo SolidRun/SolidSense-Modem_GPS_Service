@@ -1,0 +1,12 @@
+{
+ "operatorsDB": "operatorsDB",
+ "trace": "info",
+ "start_gps": false,
+ "start_gps_service": true,
+ "modem_ctrl": "/dev/ttyUSB2",
+ "address": "0.0.0.0",
+ "nmea_tty": "/dev/ttyUSB1",
+ "roaming": true,
+ "PIN": "0000",
+ "port": 20231
+}

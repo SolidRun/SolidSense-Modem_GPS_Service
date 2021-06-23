@@ -137,10 +137,19 @@ class Modem_Service():
         self._statusLock.release()
 
     def readStatus(self):
+        # wrapper around read status
         self.lockModem()
+        try:
+            self._readStatus()
+        except Exception as e:
+            mdm_serv_log.error("Exception during read status execution: "+str(e))
+        self.unlockModem()
+
+    def _readStatus(self):
+
         mdm_serv_log.debug("Reading status begin")
         nb_retry=getparam('nb_retry')
-        if nb_retry == None: nb_retry =5
+        if nb_retry is None: nb_retry =5
         self.open()
         if self._modem.networkStatus() :
             self._error_count = 0
@@ -166,8 +175,7 @@ class Modem_Service():
             mdm_serv_log.info(logstr)
             self.close()
         mdm_serv_log.debug("reading status ends")
-        self.unlockModem()
-
+        
     @staticmethod
     def statusTimer(args):
         #print("Modem status timer lapse")
