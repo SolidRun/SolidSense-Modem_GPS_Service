@@ -12,6 +12,7 @@
 
 import serial
 import sys,os,stat
+import pathlib
 import time
 import json
 import datetime
@@ -76,7 +77,12 @@ class QuectelModem():
         self.open()
         self._logAT=log
         if self._logAT :
-            self._logfp=open("/data/solidsense/modem_gps/atcmd.log","a")
+            tracedir = "/data/solidsense/modem_gps"
+            if os.path.exists(tracedir):
+                tracefile = os.path.join(tracedir,"atcmd.log")
+            else:
+                tracefile = os.path.join(os.getenv("HOME"),"atcmd.log")
+            self._logfp=open(tracefile,"a")
             header="*** New session %s ****\n"% datetime.datetime.now().isoformat(' ')
             self._logfp.write(header)
 

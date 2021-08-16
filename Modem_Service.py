@@ -175,7 +175,7 @@ class Modem_Service():
             mdm_serv_log.info(logstr)
             self.close()
         mdm_serv_log.debug("reading status ends")
-        
+
     @staticmethod
     def statusTimer(args):
         #print("Modem status timer lapse")
