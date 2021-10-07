@@ -28,18 +28,23 @@ class ModemException(Exception) :
     pass
 
 
-def findUsbModem(mfg):
+def findUsbModem(mfg, log_param=None):
     '''
     Look on the USB system and detect the modem from the manufacturer
     '''
-    local_log= logging.getLogger('Modem_GPS_Service')
-    r=subprocess.run('lsusb',capture_output=True)
-    lines=r.stdout.decode('utf-8').split('\n')
+    if log_param is None:
+        local_log= logging.getLogger('Modem_GPS_Service')
+    else:
+        local_log = log_param
+
+    r = subprocess.run('lsusb', capture_output=True)
+    lines = r.stdout.decode('utf-8').split('\n')
     found_modem=False
-    for line in lines :
-        if len(line) > 0 :
+    for line in lines:
+        if len(line) > 0:
             # print(line)
-            if line.find(mfg)  > 0 :
+            local_log.debug("lsusb:%s" % line)
+            if line.find(mfg) > 0:
                 t=line.split(' ')
                 bus=int(t[1])
                 dev=int(t[3].rstrip(':'))
@@ -49,7 +54,7 @@ def findUsbModem(mfg):
     if found_modem :
         out={}
         # check the device path
-        r=subprocess.run("ls /sys/bus/usb/drivers/option/ | head -n1 | cut -f1 -d':'",capture_output=True,shell=True)
+        r=subprocess.run("ls /sys/bus/usb/drivers/option/ | head -n1 | cut -f1 -d':'", capture_output=True, shell=True)
         dev_path=r.stdout.decode('utf-8').rstrip('\n')
         local_log.info("Found "+mfg+" modem on USB bus "+str(bus)+" device "+str(dev)+' Device path:'+dev_path)
         out['bus']=bus
@@ -67,8 +72,8 @@ def findUsbModem(mfg):
 class QuectelModem():
 
     @staticmethod
-    def checkModemPresence():
-        return findUsbModem('Quectel')
+    def checkModemPresence(log=None):
+        return findUsbModem('Quectel',log)
 
     def __init__(self,ifName,log=False,init=True):
         global modem_log
