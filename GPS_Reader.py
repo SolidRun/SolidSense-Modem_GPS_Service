@@ -21,13 +21,14 @@ gps_serv_log=None
 
 class GPS_Reader():
 
-    def __init__(self,tty="/dev/ttyUSB1"):
+    def __init__(self):
         # We assume that the GPS is turned on before
         global gps_serv_log
-        self._ready=False
-        self._data={}
-        self._data['fix']=False
-        self._fix=False
+        self._ready = False
+        self._data = {}
+        self._data['fix'] = False
+        self._fix = False
+        tty = Modem_GPS_Parameters.getparam("nmea_tty")
         gps_serv_log=logging.getLogger('Modem_GPS_Service')
         # print("Logging level:",gps_serv_log.getEffectiveLevel())
         try:
@@ -41,7 +42,7 @@ class GPS_Reader():
             self._convert_speed = True
         else:
             self._convert_speed = False
-        logging.info('GPS SERVICE: NMEA INTERFACE '+tty+' READY')
+        gps_serv_log.info('GPS SERVICE: NMEA INTERFACE '+tty+' READY')
 
 
 
