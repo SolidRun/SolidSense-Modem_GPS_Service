@@ -14,6 +14,7 @@ import sys
 import time
 
 from QuectelAT_Service import *
+from Modem_GPS_Parameters import *
 
 log=None
 
@@ -62,9 +63,12 @@ def main():
     log=logging.getLogger('Modem_GPS_Service')
     log.addHandler(logging.StreamHandler())
     log.setLevel(logging.DEBUG)
+    modem_gps_init_parameters(log)
     QuectelModem.checkModemPresence()
+    dev_file = getparam('modem_ctrl')
+    log.info("Opening modem control file:%s" % dev_file)
     try:
-        modem=QuectelModem('/dev/ttyUSB2',True)
+        modem = QuectelModem(dev_file, True)
     except Exception as err:
         log.error(str(err))
         return
